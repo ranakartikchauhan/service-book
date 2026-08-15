@@ -6,6 +6,7 @@ import {
 import * as Location from 'expo-location';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import api from '../../api/client';
+import { getDeviceLocation } from '../../utils/location';
 import { COLORS, SHADOWS } from '../../theme';
 
 const STATUS_COLOR = { open: COLORS.success, assigned: COLORS.warning, in_progress: COLORS.primary };
@@ -34,17 +35,7 @@ export default function JobBrowseScreen({ navigation }) {
   const [togglingAvailability, setTogglingAvailability] = useState(false);
 
   const getLocation = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Location Required', 'Please allow location access to see nearby jobs.');
-        return null;
-      }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      return loc.coords;
-    } catch {
-      return null;
-    }
+    return await getDeviceLocation({ showAlert: true });
   };
 
   const fetchJobs = useCallback(async (coords = location) => {

@@ -12,7 +12,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.workmarket.app"
+      "bundleIdentifier": "com.workmarket.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "WorkMarket uses your location to discover and match local service jobs near you."
+      }
     },
     "android": {
       "package": "com.workmarket.app",
@@ -26,6 +29,14 @@
       ],
       "usesCleartextTraffic": true
     },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "WorkMarket uses your location to discover and match local service jobs near you."
+        }
+      ]
+    ],
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"

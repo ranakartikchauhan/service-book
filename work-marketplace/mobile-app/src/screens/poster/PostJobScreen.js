@@ -6,6 +6,7 @@ import {
 import * as Location from 'expo-location';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../api/client';
+import { getDeviceLocation, getAddressFromCoords } from '../../utils/location';
 import { COLORS, SHADOWS } from '../../theme';
 
 const CATEGORY_ICON_MAP = {
@@ -35,51 +36,23 @@ export default function PostJobScreen({ navigation }) {
     isUrgent: false,
   });
 
-  const detectLocation = async () => {
+  const detectLocation = async (showAlert = true) => {
     setDetectingLocation(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Location Permission Required',
-          'Please allow location access to auto-detect your area so nearby workers can find this job.'
-        );
-        return;
-      }
+      const locationCoords = await getDeviceLocation({ showAlert });
+      if (locationCoords) {
+        setCoords({
+          longitude: locationCoords.longitude,
+          latitude: locationCoords.latitude,
+        });
 
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      const currentCoords = {
-        longitude: loc.coords.longitude,
-        latitude: loc.coords.latitude,
-      };
-      setCoords(currentCoords);
-
-      // Reverse geocode to get human-readable street/locality/city
-      const reverse = await Location.reverseGeocodeAsync({
-        latitude: currentCoords.latitude,
-        longitude: currentCoords.longitude,
-      });
-
-      if (reverse && reverse[0]) {
-        const item = reverse[0];
-        const parts = [
-          item.name,
-          item.street,
-          item.district || item.subregion,
-          item.city,
-          item.region,
-          item.postalCode,
-        ].filter(Boolean);
-
-        const autoAddress = parts.join(', ');
-        setForm((f) => ({ ...f, addressText: autoAddress }));
+        const address = await getAddressFromCoords(locationCoords.latitude, locationCoords.longitude);
+        if (address) {
+          setForm((f) => ({ ...f, addressText: address }));
+        }
       }
     } catch (err) {
-      console.error('Error detecting location:', err);
-      Alert.alert('Location Notice', 'Could not auto-detect location. You can type your address manually.');
+      console.warn('Error in detectLocation:', err);
     } finally {
       setDetectingLocation(false);
     }
@@ -87,8 +60,8 @@ export default function PostJobScreen({ navigation }) {
 
   useEffect(() => {
     const init = async () => {
-      // Auto-detect location on initial screen load
-      detectLocation();
+      // Auto-detect location silently on initial screen load
+      detectLocation(false);
 
       try {
         const { data } = await api.get('/jobs/categories');
@@ -118,7 +91,7 @@ export default function PostJobScreen({ navigation }) {
     try {
       let finalCoords = coords;
 
-      // If user typed custom address and no coords yet or edited, forward-geocode it
+      // If user typed address without GPS, forward geocode it
       if (!finalCoords && form.addressText.trim()) {
         try {
           const geocoded = await Location.geocodeAsync(form.addressText.trim());
@@ -129,11 +102,16 @@ export default function PostJobScreen({ navigation }) {
             };
           }
         } catch (e) {
-          console.warn('Geocoding fallback failed:', e);
+          console.warn('Forward geocoding error:', e);
         }
       }
 
-      // Default fallback if GPS is turned off completely
+      // If still null, try one last device location probe
+      if (!finalCoords) {
+        finalCoords = await getDeviceLocation({ showAlert: false });
+      }
+
+      // Fallback only if device completely refuses GPS
       if (!finalCoords) {
         finalCoords = { longitude: 77.2090, latitude: 28.6139 };
       }
@@ -252,7 +230,7 @@ export default function PostJobScreen({ navigation }) {
 
               <TouchableOpacity
                 style={styles.detectLocationBtn}
-                onPress={detectLocation}
+                onPress={() => detectLocation(true)}
                 disabled={detectingLocation}
                 activeOpacity={0.7}
               >
@@ -261,7 +239,7 @@ export default function PostJobScreen({ navigation }) {
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     <Ionicons name="navigate" size={12} color={COLORS.primaryLight} />
-                    <Text style={styles.detectLocationTxt}>Auto-Detect GPS</Text>
+                    <Text style={styles.detectLocationTxt}>Detect My Location</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -279,7 +257,7 @@ export default function PostJobScreen({ navigation }) {
               <View style={styles.gpsPill}>
                 <Ionicons name="checkmark-circle" size={12} color={COLORS.success} />
                 <Text style={styles.gpsPillTxt}>
-                  GPS Verified ({coords.latitude.toFixed(4)}°, {coords.longitude.toFixed(4)}°) — Nearby workers will see this immediately
+                  GPS Coordinates Locked ({coords.latitude.toFixed(4)}°, {coords.longitude.toFixed(4)}°)
                 </Text>
               </View>
             )}
