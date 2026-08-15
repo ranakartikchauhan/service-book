@@ -7,7 +7,8 @@ const PlatformConfig = require('../models/PlatformConfig');
 const User = require('../models/User');
 const verifyUserToken = require('../middleware/verifyUserToken');
 const { uploadPublic } = require('../services/cloudinaryService');
-const { JOB_STATUS, APPLICATION_STATUS, TRANSACTION_STATUS, VERIFICATION_STATUS } = require('../config/constants');
+const Category = require('../models/Category');
+const { JOB_STATUS, APPLICATION_STATUS, TRANSACTION_STATUS, VERIFICATION_STATUS, DEFAULT_CATEGORIES } = require('../config/constants');
 const {
   notifyApplicationAccepted,
   notifyApplicationRejected,
@@ -15,6 +16,25 @@ const {
 } = require('../services/fcmService');
 
 const router = express.Router();
+
+// ─── GET CATEGORIES (Public) ──────────────────────────────────────────────────
+// GET /api/jobs/categories
+router.get('/categories', async (req, res, next) => {
+  try {
+    let categories = await Category.find({ active: true }).sort({ sortOrder: 1, name: 1 });
+    if (categories.length === 0) {
+      // Auto-seed default categories if database is fresh
+      await Category.insertMany(
+        DEFAULT_CATEGORIES.map((cat, idx) => ({ ...cat, sortOrder: idx, active: true }))
+      );
+      categories = await Category.find({ active: true }).sort({ sortOrder: 1, name: 1 });
+    }
+    res.json({ success: true, data: { categories } });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.use(verifyUserToken);
 
 // ─── CREATE JOB (poster) ──────────────────────────────────────────────────────

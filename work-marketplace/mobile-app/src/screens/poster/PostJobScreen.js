@@ -23,7 +23,7 @@ export default function PostJobScreen({ navigation }) {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const { data } = await api.get('/admin/categories');
+        const { data } = await api.get('/jobs/categories');
         const list = data.data.categories || [];
         setCategories(list);
         if (list.length > 0) {

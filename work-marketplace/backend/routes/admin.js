@@ -295,6 +295,74 @@ router.get('/transactions', async (req, res, next) => {
   }
 });
 
+// ─── CATEGORY MANAGEMENT (CRUD) ──────────────────────────────────────────────
+// GET /api/admin/categories - list all categories
+router.get('/categories', async (req, res, next) => {
+  try {
+    let categories = await Category.find().sort({ sortOrder: 1, name: 1 });
+    if (categories.length === 0) {
+      await Category.insertMany(
+        DEFAULT_CATEGORIES.map((c, i) => ({ ...c, sortOrder: i, active: true }))
+      );
+      categories = await Category.find().sort({ sortOrder: 1, name: 1 });
+    }
+    res.json({ success: true, data: { categories } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/admin/categories - create a new category
+router.post('/categories', async (req, res, next) => {
+  try {
+    const { name, icon = 'briefcase', sortOrder = 0, active = true } = req.body;
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Category name is required' });
+    }
+    const existing = await Category.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } });
+    if (existing) {
+      return res.status(409).json({ success: false, message: 'Category with this name already exists' });
+    }
+    const category = await Category.create({ name: name.trim(), icon, sortOrder, active });
+    res.status(201).json({ success: true, message: 'Category created successfully', data: { category } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /api/admin/categories/:id - update category
+router.put('/categories/:id', async (req, res, next) => {
+  try {
+    const { name, icon, sortOrder, active } = req.body;
+    const updateData = {};
+    if (name !== undefined) updateData.name = name.trim();
+    if (icon !== undefined) updateData.icon = icon;
+    if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
+    if (active !== undefined) updateData.active = active;
+
+    const category = await Category.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    if (!category) {
+      return res.status(404).json({ success: false, message: 'Category not found' });
+    }
+    res.json({ success: true, message: 'Category updated', data: { category } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/admin/categories/:id - delete category
+router.delete('/categories/:id', async (req, res, next) => {
+  try {
+    const category = await Category.findByIdAndDelete(req.params.id);
+    if (!category) {
+      return res.status(404).json({ success: false, message: 'Category not found' });
+    }
+    res.json({ success: true, message: 'Category deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ─── SEED DEFAULT CATEGORIES (call once on first run) ─────────────────────────
 // POST /api/admin/seed-categories
 router.post('/seed-categories', async (req, res, next) => {

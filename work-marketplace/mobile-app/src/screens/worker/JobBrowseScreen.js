@@ -48,7 +48,7 @@ export default function JobBrowseScreen({ navigation }) {
       }
       // Fetch categories for filter
       try {
-        const { data } = await api.get('/admin/categories'); // reuse admin endpoint for now
+        const { data } = await api.get('/jobs/categories');
         setCategories(data.data.categories || []);
       } catch {}
       setLoading(false);
