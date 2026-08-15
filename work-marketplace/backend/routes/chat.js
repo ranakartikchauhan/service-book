@@ -42,6 +42,12 @@ router.get('/:jobId/messages', async (req, res, next) => {
       { readAt: new Date() }
     );
 
+    res.json({ success: true, data: { messages, page: parseInt(page) } });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ─── SEND MESSAGE ─────────────────────────────────────────────────────────────
 // POST /api/chat/:jobId/messages
 router.post('/:jobId/messages', async (req, res, next) => {

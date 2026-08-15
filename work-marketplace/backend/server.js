@@ -134,13 +134,15 @@ app.use(errorHandler);
 // ─── Start server for local development or traditional host ──────────────────
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
-  connectDB().then(() => {
-    server.listen(PORT, () => {
-      console.log(`\n🚀 Work Marketplace API running on port ${PORT}`);
-      console.log(`   Environment: ${process.env.NODE_ENV}`);
-      console.log(`   Health check: http://localhost:${PORT}/api/health\n`);
+  connectDB()
+    .catch((err) => console.warn('⚠️ MongoDB not connected on boot:', err.message))
+    .finally(() => {
+      server.listen(PORT, () => {
+        console.log(`\n🚀 Work Marketplace API running on port ${PORT}`);
+        console.log(`   Environment: ${process.env.NODE_ENV}`);
+        console.log(`   Health check: http://localhost:${PORT}/api/health\n`);
+      });
     });
-  });
 }
 
 module.exports = { app, server };
