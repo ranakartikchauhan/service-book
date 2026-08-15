@@ -39,20 +39,20 @@ export default function JobBrowseScreen({ navigation }) {
   };
 
   const fetchJobs = useCallback(async (coords = location) => {
-    if (!coords) return;
     try {
-      const params = {
-        lng: coords.longitude,
-        lat: coords.latitude,
-        radius: selectedRadius,
-      };
+      const params = {};
+      if (coords && coords.longitude && coords.latitude) {
+        params.lng = coords.longitude;
+        params.lat = coords.latitude;
+        params.radius = selectedRadius;
+      }
       if (selectedCategory) params.category = selectedCategory;
       if (urgentOnly) params.isUrgent = 'true';
 
       const { data } = await api.get('/jobs/nearby', { params });
       setJobs(data.data.jobs || []);
     } catch (err) {
-      console.error('Could not load nearby jobs:', err);
+      console.error('Could not load jobs:', err);
     }
   }, [location, selectedCategory, selectedRadius, urgentOnly]);
 
@@ -69,8 +69,8 @@ export default function JobBrowseScreen({ navigation }) {
       const coords = await getLocation();
       if (coords) {
         setLocation(coords);
-        await fetchJobs(coords);
       }
+      await fetchJobs(coords);
       try {
         const { data } = await api.get('/jobs/categories');
         setCategories(data.data.categories || []);
@@ -82,7 +82,7 @@ export default function JobBrowseScreen({ navigation }) {
   }, []);
 
   useEffect(() => {
-    if (location) fetchJobs();
+    fetchJobs(location);
   }, [selectedCategory, selectedRadius, urgentOnly]);
 
   const onRefresh = async () => {
@@ -90,8 +90,8 @@ export default function JobBrowseScreen({ navigation }) {
     const coords = await getLocation();
     if (coords) {
       setLocation(coords);
-      await fetchJobs(coords);
     }
+    await fetchJobs(coords || location);
     await loadWorkerAvailability();
     setRefreshing(false);
   };

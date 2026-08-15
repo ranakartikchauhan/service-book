@@ -98,35 +98,49 @@ router.get('/nearby', async (req, res, next) => {
   try {
     const { lng, lat, radius = 10, category, isUrgent, sortBy, page = 1, limit = 20 } = req.query;
 
-    if (!lng || !lat) {
-      return res.status(400).json({ success: false, message: 'Longitude and latitude are required' });
-    }
-
-    const query = {
-      status: JOB_STATUS.OPEN,
-      location: {
-        $near: {
-          $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
-          $maxDistance: parseFloat(radius) * 1000, // convert km to meters
-        },
-      },
-    };
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    let query = { status: JOB_STATUS.OPEN };
 
     if (category) query.category = category;
     if (isUrgent === 'true') query.isUrgent = true;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    let hasGeospatial = false;
+    if (lng && lat && !isNaN(parseFloat(lng)) && !isNaN(parseFloat(lat)) && radius !== 'all') {
+      query.location = {
+        $near: {
+          $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
+          $maxDistance: parseFloat(radius) * 1000, // convert km to meters
+        },
+      };
+      hasGeospatial = true;
+    }
 
-    let jobQuery = Job.find(query)
-      .populate('category', 'name icon')
-      .populate('posterId', 'name profilePhotoUrl')
-      .skip(skip)
-      .limit(parseInt(limit));
+    let jobs = [];
+    try {
+      let jobQuery = Job.find(query)
+        .populate('category', 'name icon')
+        .populate('posterId', 'name profilePhotoUrl')
+        .skip(skip)
+        .limit(parseInt(limit));
 
-    if (sortBy === 'budget_high') jobQuery = jobQuery.sort({ budgetAmount: -1 });
-    if (sortBy === 'newest') jobQuery = jobQuery.sort({ createdAt: -1 });
+      if (sortBy === 'budget_high') jobQuery = jobQuery.sort({ budgetAmount: -1 });
+      else if (sortBy === 'newest' || !hasGeospatial) jobQuery = jobQuery.sort({ createdAt: -1 });
 
-    const jobs = await jobQuery;
+      jobs = await jobQuery;
+    } catch (geoError) {
+      console.warn('Geospatial query fallback triggered:', geoError.message);
+      // Fallback query without $near if index or coordinates failed
+      const fallbackQuery = { status: JOB_STATUS.OPEN };
+      if (category) fallbackQuery.category = category;
+      if (isUrgent === 'true') fallbackQuery.isUrgent = true;
+
+      jobs = await Job.find(fallbackQuery)
+        .populate('category', 'name icon')
+        .populate('posterId', 'name profilePhotoUrl')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit));
+    }
 
     // Attach poster rating to each job
     const jobsWithRating = await Promise.all(
