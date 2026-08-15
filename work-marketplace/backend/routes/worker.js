@@ -83,8 +83,8 @@ router.post('/profile/photo', uploadPublic.single('photo'), async (req, res, nex
     }
 
     const { path: photoUrl } = req.file;
-    const { User } = require('../models/User');
-    await require('../models/User').findByIdAndUpdate(req.user._id, { profilePhotoUrl: photoUrl });
+    const User = require('../models/User');
+    await User.findByIdAndUpdate(req.user._id, { profilePhotoUrl: photoUrl });
 
     res.json({ success: true, data: { photoUrl } });
   } catch (error) {

@@ -1,17 +1,59 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, ActivityIndicator,
+  ScrollView, Alert, ActivityIndicator, Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n';
 import { COLORS, SHADOWS } from '../../theme';
 
 export default function SettingsScreen({ navigation }) {
-  const { user, logout, switchMode } = useAuth();
+  const { user, logout, switchMode, refreshUser } = useAuth();
   const { language, changeLanguage, t } = useTranslation();
   const [switching, setSwitching] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const handlePickProfilePhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      return Alert.alert('Permission Required', 'Please allow gallery access to select a profile photo.');
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.[0]) {
+      const asset = result.assets[0];
+      setUploadingPhoto(true);
+
+      try {
+        const formData = new FormData();
+        formData.append('photo', {
+          uri: asset.uri,
+          name: `avatar_${Date.now()}.jpg`,
+          type: 'image/jpeg',
+        });
+
+        await api.post('/auth/profile-photo', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        Alert.alert('Success', 'Profile photo updated successfully.');
+        if (refreshUser) await refreshUser();
+      } catch (err) {
+        Alert.alert('Upload Failed', err.response?.data?.message || 'Could not upload profile photo.');
+      } finally {
+        setUploadingPhoto(false);
+      }
+    }
+  };
 
   const handleModeSwitch = async () => {
     const nextMode = user?.currentMode === 'worker' ? 'poster' : 'worker';
@@ -84,11 +126,30 @@ export default function SettingsScreen({ navigation }) {
 
       {/* PROFILE HERO HEADER */}
       <View style={[styles.profileHeader, SHADOWS.medium]}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{user?.name?.[0] || 'U'}</Text>
-        </View>
+        <TouchableOpacity
+          style={styles.avatarWrapper}
+          onPress={handlePickProfilePhoto}
+          disabled={uploadingPhoto}
+          activeOpacity={0.8}
+        >
+          <View style={styles.avatar}>
+            {uploadingPhoto ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : user?.profilePhotoUrl ? (
+              <Image source={{ uri: user.profilePhotoUrl }} style={styles.avatarImg} />
+            ) : (
+              <Text style={styles.avatarText}>{user?.name?.[0] || 'U'}</Text>
+            )}
+          </View>
+          <View style={styles.cameraIconBadge}>
+            <Ionicons name="camera" size={14} color="#FFFFFF" />
+          </View>
+        </TouchableOpacity>
+
         <Text style={styles.userName}>{user?.name}</Text>
         <Text style={styles.userPhone}>{user?.phone}</Text>
+        <Text style={styles.tapToChangeTxt}>Tap avatar to change photo</Text>
+
         <View style={styles.modeBadge}>
           <Ionicons name="sparkles" size={12} color={COLORS.primaryLight} />
           <Text style={styles.modeBadgeText}>
@@ -277,20 +338,40 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.surfaceBorder,
   },
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: 10,
+  },
   avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
     borderWidth: 3,
     borderColor: COLORS.surfaceLight,
+    overflow: 'hidden',
   },
-  avatarText: { fontSize: 32, fontWeight: '900', color: '#FFFFFF' },
+  avatarImg: { width: '100%', height: '100%' },
+  avatarText: { fontSize: 36, fontWeight: '900', color: '#FFFFFF' },
+  cameraIconBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: COLORS.primary,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.surface,
+  },
   userName: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary },
   userPhone: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  tapToChangeTxt: { fontSize: 11, color: COLORS.primaryLight, marginTop: 4, fontWeight: '600' },
+
   modeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -299,7 +380,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 999,
-    marginTop: 12,
+    marginTop: 10,
     borderWidth: 1,
     borderColor: 'rgba(99, 102, 241, 0.3)',
   },

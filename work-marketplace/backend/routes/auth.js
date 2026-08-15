@@ -141,4 +141,32 @@ router.patch('/fcm-token', verifyUserToken, async (req, res, next) => {
   }
 });
 
+// ─── UPLOAD PROFILE PHOTO ─────────────────────────────────────────────────────
+// POST /api/auth/profile-photo
+const { uploadPublic } = require('../services/cloudinaryService');
+
+router.post('/profile-photo', verifyUserToken, uploadPublic.single('photo'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No photo provided for upload' });
+    }
+
+    const photoUrl = req.file.path || req.file.secure_url || req.file.url;
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { profilePhotoUrl: photoUrl },
+      { new: true }
+    ).select('-passwordHash');
+
+    res.json({
+      success: true,
+      message: 'Profile photo updated successfully',
+      data: { photoUrl, user },
+    });
+  } catch (error) {
+    console.error('Profile photo upload error:', error);
+    next(error);
+  }
+});
+
 module.exports = router;

@@ -1,31 +1,74 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, SafeAreaView,
+  ActivityIndicator, Alert, SafeAreaView, Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, SHADOWS } from '../../theme';
 
 export default function ProfileScreen({ navigation }) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const loadProfile = async () => {
+    try {
+      const { data } = await api.get('/worker/profile');
+      setProfile(data.data.profile);
+    } catch (err) {
+      console.error('Error loading worker profile:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const { data } = await api.get('/worker/profile');
-        setProfile(data.data.profile);
-      } catch (err) {
-        console.error('Error loading worker profile:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadProfile();
   }, []);
+
+  const handlePickProfilePhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      return Alert.alert('Permission Required', 'Please allow gallery access to select a profile photo.');
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.[0]) {
+      const asset = result.assets[0];
+      setUploadingPhoto(true);
+
+      try {
+        const formData = new FormData();
+        formData.append('photo', {
+          uri: asset.uri,
+          name: `avatar_${Date.now()}.jpg`,
+          type: 'image/jpeg',
+        });
+
+        await api.post('/auth/profile-photo', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        Alert.alert('Success', 'Profile photo updated successfully.');
+        if (refreshUser) await refreshUser();
+        await loadProfile();
+      } catch (err) {
+        Alert.alert('Upload Failed', err.response?.data?.message || 'Could not upload profile photo.');
+      } finally {
+        setUploadingPhoto(false);
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -43,11 +86,29 @@ export default function ProfileScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.container}>
         {/* HERO PROFILE CARD */}
         <View style={[styles.heroCard, SHADOWS.medium]}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarTxt}>{user?.name?.[0] || 'W'}</Text>
-          </View>
+          <TouchableOpacity
+            style={styles.avatarWrapper}
+            onPress={handlePickProfilePhoto}
+            disabled={uploadingPhoto}
+            activeOpacity={0.8}
+          >
+            <View style={styles.avatar}>
+              {uploadingPhoto ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : user?.profilePhotoUrl ? (
+                <Image source={{ uri: user.profilePhotoUrl }} style={styles.avatarImg} />
+              ) : (
+                <Text style={styles.avatarTxt}>{user?.name?.[0] || 'W'}</Text>
+              )}
+            </View>
+            <View style={styles.cameraIconBadge}>
+              <Ionicons name="camera" size={14} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
+
           <Text style={styles.name}>{user?.name}</Text>
           <Text style={styles.phone}>{user?.phone}</Text>
+          <Text style={styles.tapToChangeTxt}>Tap avatar to update photo</Text>
 
           <View style={[
             styles.verifyBadge,
@@ -172,20 +233,39 @@ const styles = StyleSheet.create({
     borderColor: COLORS.surfaceBorder,
     marginBottom: 16,
   },
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: 10,
+  },
   avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
     borderWidth: 3,
     borderColor: COLORS.surfaceLight,
+    overflow: 'hidden',
   },
-  avatarTxt: { fontSize: 32, fontWeight: '900', color: '#FFFFFF' },
+  avatarImg: { width: '100%', height: '100%' },
+  avatarTxt: { fontSize: 34, fontWeight: '900', color: '#FFFFFF' },
+  cameraIconBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: COLORS.primary,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.surface,
+  },
   name: { fontSize: 20, fontWeight: '900', color: COLORS.textPrimary },
   phone: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  tapToChangeTxt: { fontSize: 11, color: COLORS.primaryLight, marginTop: 4, fontWeight: '600' },
 
   verifyBadge: {
     flexDirection: 'row',
