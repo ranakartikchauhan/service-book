@@ -15,36 +15,39 @@ This document contains end-to-end instructions for deploying all components of t
 
 ---
 
-## 🛠️ Step 1: Deploy Backend API (Vercel Serverless)
+## 🛠️ Step 1: Deploy Backend & WebSockets (Render - Recommended for Socket.io)
 
-The backend is configured as a serverless Express application via `work-marketplace/backend/api/index.js` and `vercel.json`.
+Render supports persistent Node.js servers and native WebSockets on their free tier, making it ideal for Socket.io real-time chat, GPS location sharing, and SOS broadcasts.
 
-### Option A: Via Vercel Web Dashboard (Recommended)
-1. Go to [vercel.com/new](https://vercel.com/new) and click **Import** next to `service-book`.
-2. Configure project settings:
-   - **Project Name**: `workmarket-backend-api`
-   - **Root Directory**: Click *Edit* and select **`work-marketplace/backend`**
-   - **Framework Preset**: Other
-3. Expand **Environment Variables** and add:
-   | Key | Value / Description |
+### Deploying on Render (3-Minute Setup):
+1. Go to [dashboard.render.com](https://dashboard.render.com) and click **New +** → **Web Service**.
+2. Connect your GitHub repository: `https://github.com/ranakartikchauhan/service-book`.
+3. Configure the settings:
+   - **Name**: `work-marketplace-backend`
+   - **Root Directory**: `work-marketplace/backend`
+   - **Environment**: `Node`
+   - **Region**: `Singapore` (closest to India) or `Frankfurt`
+   - **Build Command**: `npm install`
+   - **Start Command**: `node server.js`
+   - **Instance Type**: `Free`
+4. Under **Environment Variables**, add the following:
+   | Key | Recommended Production Value |
    |---|---|
-   | `PORT` | `5000` |
-   | `MONGO_URI` | Your MongoDB Atlas connection string (`mongodb+srv://...`) |
-   | `JWT_SECRET` | A secure random string (e.g. `wm_jwt_secret_production_2026_x99!`) |
-   | `ADMIN_SECRET` | A secure secret for admin operations |
-   | `CLOUDINARY_CLOUD_NAME` | Cloudinary name (optional for uploads) |
-   | `CLOUDINARY_API_KEY` | Cloudinary API Key |
-   | `CLOUDINARY_API_SECRET` | Cloudinary API Secret |
-   | `RAZORPAY_KEY_ID` | Razorpay Key ID (optional for payments) |
-   | `RAZORPAY_KEY_SECRET` | Razorpay Secret |
-4. Click **Deploy**. Note your live URL: `https://workmarket-backend-api.vercel.app`.
+   | `NODE_ENV` | `production` |
+   | `MONGO_URI` | `mongodb+srv://kartikchauhan336:QoBJmjXCYqObFnsp@cluster0.umvdwqv.mongodb.net/jobgramApp?retryWrites=true&w=majority` |
+   | `JWT_SECRET` | `jobgram_super_secure_jwt_secret_2026_x99!#` |
+   | `ADMIN_JWT_SECRET` | `jobgram_admin_jwt_secret_production_2026_key!` |
+   | `CLOUDINARY_CLOUD_NAME` | `dmittu8hn` |
+   | `CLOUDINARY_API_KEY` | `168996289798628` |
+   | `CLOUDINARY_API_SECRET` | `IpzEqtCHQVJM-pT-R-zoJPPoZjs` |
+   | `RAZORPAY_KEY_ID` | `rzp_test_placeholder_key` |
+   | `RAZORPAY_KEY_SECRET` | `rzp_test_placeholder_secret` |
+   | `ALLOWED_ORIGINS` | `*` |
+5. Click **Create Web Service**.
+6. Once deployed, copy your Render URL (e.g. `https://work-marketplace-backend.onrender.com`).
+   - Health check: `https://work-marketplace-backend.onrender.com/api/health`
 
-### Option B: Via Vercel CLI
-```powershell
-cd d:\service-book\work-marketplace\backend
-npx vercel login
-npx vercel --prod
-```
+---
 
 ---
 
