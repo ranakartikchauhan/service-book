@@ -96,7 +96,7 @@ router.post('/', uploadPublic.array('photos', 5), checkPosterJobPostLimit, async
 // GET /api/jobs/nearby?lng=&lat=&radius=&category=&isUrgent=&sortBy=&page=&limit=
 router.get('/nearby', async (req, res, next) => {
   try {
-    const { lng, lat, radius = 10, category, isUrgent, sortBy, page = 1, limit = 20 } = req.query;
+    const { lng, lat, radius = 10, category, isUrgent, search, sortBy, page = 1, limit = 20 } = req.query;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     let query = { status: JOB_STATUS.OPEN };
@@ -104,8 +104,17 @@ router.get('/nearby', async (req, res, next) => {
     if (category) query.category = category;
     if (isUrgent === 'true') query.isUrgent = true;
 
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      query.$or = [
+        { title: searchRegex },
+        { description: searchRegex },
+        { 'location.addressText': searchRegex },
+      ];
+    }
+
     let hasGeospatial = false;
-    if (lng && lat && !isNaN(parseFloat(lng)) && !isNaN(parseFloat(lat)) && radius !== 'all') {
+    if (lng && lat && !isNaN(parseFloat(lng)) && !isNaN(parseFloat(lat)) && radius !== 'all' && !search) {
       query.location = {
         $near: {
           $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
@@ -133,6 +142,14 @@ router.get('/nearby', async (req, res, next) => {
       const fallbackQuery = { status: JOB_STATUS.OPEN };
       if (category) fallbackQuery.category = category;
       if (isUrgent === 'true') fallbackQuery.isUrgent = true;
+      if (search && search.trim()) {
+        const searchRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        fallbackQuery.$or = [
+          { title: searchRegex },
+          { description: searchRegex },
+          { 'location.addressText': searchRegex },
+        ];
+      }
 
       jobs = await Job.find(fallbackQuery)
         .populate('category', 'name icon')

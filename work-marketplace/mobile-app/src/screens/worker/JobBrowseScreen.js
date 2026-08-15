@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, RefreshControl, Alert, Switch,
+  ActivityIndicator, RefreshControl, Alert, Switch, TextInput,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
@@ -29,22 +29,26 @@ export default function JobBrowseScreen({ navigation }) {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedRadius, setSelectedRadius] = useState(10);
+  const [searchQuery, setSearchQuery] = useState('');
   const [urgentOnly, setUrgentOnly] = useState(false);
   const [isAvailableNow, setIsAvailableNow] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
   const [togglingAvailability, setTogglingAvailability] = useState(false);
 
   const getLocation = async () => {
-    return await getDeviceLocation({ showAlert: true });
+    return await getDeviceLocation({ showAlert: false });
   };
 
-  const fetchJobs = useCallback(async (coords = location) => {
+  const fetchJobs = useCallback(async (coords = location, queryText = searchQuery) => {
     try {
       const params = {};
-      if (coords && coords.longitude && coords.latitude) {
+      if (coords && coords.longitude && coords.latitude && !queryText.trim()) {
         params.lng = coords.longitude;
         params.lat = coords.latitude;
         params.radius = selectedRadius;
+      }
+      if (queryText && queryText.trim()) {
+        params.search = queryText.trim();
       }
       if (selectedCategory) params.category = selectedCategory;
       if (urgentOnly) params.isUrgent = 'true';
@@ -54,7 +58,7 @@ export default function JobBrowseScreen({ navigation }) {
     } catch (err) {
       console.error('Could not load jobs:', err);
     }
-  }, [location, selectedCategory, selectedRadius, urgentOnly]);
+  }, [location, selectedCategory, selectedRadius, urgentOnly, searchQuery]);
 
   const loadWorkerAvailability = async () => {
     try {
@@ -201,6 +205,33 @@ export default function JobBrowseScreen({ navigation }) {
           trackColor={{ false: COLORS.surfaceBorderLight, true: COLORS.success }}
           thumbColor="#FFFFFF"
         />
+      {/* SEARCH BAR (Location & Keyword Search) */}
+      <View style={styles.searchBarContainer}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={18} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search city, sector, area or service..."
+            placeholderTextColor={COLORS.textMuted}
+            value={searchQuery}
+            onChangeText={(text) => {
+              setSearchQuery(text);
+              fetchJobs(location, text);
+            }}
+            returnKeyType="search"
+          />
+          {searchQuery ? (
+            <TouchableOpacity
+              onPress={() => {
+                setSearchQuery('');
+                fetchJobs(location, '');
+              }}
+              style={{ padding: 4 }}
+            >
+              <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
 
       {/* FILTER CONTROLS BAR */}
@@ -354,6 +385,29 @@ const styles = StyleSheet.create({
   liveDot: { width: 9, height: 9, borderRadius: 4.5 },
   availabilityTitle: { fontSize: 14, fontWeight: '800', color: COLORS.textPrimary },
   availabilitySubtitle: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+
+  searchBarContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 4,
+    backgroundColor: COLORS.surface,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorderLight,
+  },
+  searchInput: {
+    flex: 1,
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    padding: 0,
+  },
 
   controlsBar: {
     flexDirection: 'row',

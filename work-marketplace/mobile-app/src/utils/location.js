@@ -170,3 +170,34 @@ export async function getCoordsFromAddress(addressText) {
 
   return null;
 }
+
+/**
+ * Search locations and addresses worldwide with auto-suggestions
+ */
+export async function searchLocations(query) {
+  if (!query || query.trim().length < 2) return [];
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        query.trim()
+      )}&limit=5&addressdetails=1`,
+      {
+        headers: {
+          'User-Agent': 'WorkMarket-MobileApp/1.0',
+          'Accept-Language': 'en',
+        },
+      }
+    );
+    const data = await response.json();
+    return (data || []).map((item) => ({
+      placeId: item.place_id,
+      title: item.display_name.split(',')[0],
+      subtitle: item.display_name.split(',').slice(1).join(',').trim(),
+      latitude: parseFloat(item.lat),
+      longitude: parseFloat(item.lon),
+    }));
+  } catch (err) {
+    console.warn('Location search error:', err.message);
+    return [];
+  }
+}
