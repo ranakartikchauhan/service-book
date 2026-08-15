@@ -25,7 +25,11 @@ export default function RegisterScreen({ navigation }) {
     try {
       await register({ name: form.name, phone: form.phone, password: form.password });
     } catch (err) {
-      Alert.alert('Registration Failed', err.response?.data?.message || 'Please try again.');
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        'Unable to connect to server. Please check your network and API URL.';
+      Alert.alert('Registration Failed', errorMsg);
     } finally {
       setLoading(false);
     }
