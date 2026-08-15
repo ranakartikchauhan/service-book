@@ -39,3 +39,5 @@ Thumbs.db
 .eas/
 *.keystore
 *.jks
+*firebase*.json
+*service-account*.json

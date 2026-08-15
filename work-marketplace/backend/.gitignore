@@ -6,3 +6,5 @@ npm-debug.log*
 .DS_Store
 dist/
 build/
+*firebase*.json
+config/*service-account*.json
