@@ -23,6 +23,7 @@ const reviewsRoutes = require('./routes/reviews');
 const safetyRoutes = require('./routes/safety');
 const adminRoutes = require('./routes/admin');
 const subscriptionsRoutes = require('./routes/subscriptions');
+const notificationsRoutes = require('./routes/notifications');
 
 const app = express();
 const server = http.createServer(app);
@@ -82,6 +83,7 @@ app.use('/api/payments', paymentsRoutes); // no rate limit — webhook is sensit
 app.use('/api/reviews', apiLimiter, reviewsRoutes);
 app.use('/api/safety', apiLimiter, safetyRoutes);
 app.use('/api/subscriptions', apiLimiter, subscriptionsRoutes);
+app.use('/api/notifications', apiLimiter, notificationsRoutes);
 app.use('/api/admin', adminRoutes); // admin has its own auth layer
 
 // ─── Health check ─────────────────────────────────────────────────────────────

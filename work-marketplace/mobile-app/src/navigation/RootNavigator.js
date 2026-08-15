@@ -2,8 +2,9 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, ActivityIndicator } from 'react-native';
+import { Text, View, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { LanguageProvider } from '../i18n';
 
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -28,9 +29,23 @@ import ChatScreen from '../screens/shared/ChatScreen';
 import ReviewScreen from '../screens/shared/ReviewScreen';
 import SettingsScreen from '../screens/shared/SettingsScreen';
 import SubscriptionScreen from '../screens/shared/SubscriptionScreen';
+import NotificationCenterScreen from '../screens/shared/NotificationCenterScreen';
+import NotificationPreferencesScreen from '../screens/shared/NotificationPreferencesScreen';
+import EmergencyContactScreen from '../screens/shared/EmergencyContactScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+function HeaderNotificationBell({ navigation }) {
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.navigate('NotificationCenter')}
+      style={{ marginRight: 16, padding: 4 }}
+    >
+      <Text style={{ fontSize: 20 }}>🔔</Text>
+    </TouchableOpacity>
+  );
+}
 
 // ─── Auth Stack ───────────────────────────────────────────────────────────────
 function AuthStack() {
@@ -43,7 +58,7 @@ function AuthStack() {
 }
 
 // ─── Worker Tabs ──────────────────────────────────────────────────────────────
-function WorkerTabs() {
+function WorkerTabs({ navigation }) {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -52,12 +67,13 @@ function WorkerTabs() {
         tabBarInactiveTintColor: '#64748b',
         headerStyle: { backgroundColor: '#1e293b' },
         headerTintColor: '#f1f5f9',
+        headerRight: () => <HeaderNotificationBell navigation={navigation} />,
       }}
     >
       <Tab.Screen
         name="Jobs"
         component={WorkerJobBrowseScreen}
-        options={{ tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>💼</Text>, tabBarLabel: 'Find Work' }}
+        options={{ tabBarIcon: () => <Text style={{ fontSize: 20 }}>💼</Text>, tabBarLabel: 'Find Work' }}
       />
       <Tab.Screen
         name="MyApplications"
@@ -79,7 +95,7 @@ function WorkerTabs() {
 }
 
 // ─── Poster Tabs ──────────────────────────────────────────────────────────────
-function PosterTabs() {
+function PosterTabs({ navigation }) {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -88,6 +104,7 @@ function PosterTabs() {
         tabBarInactiveTintColor: '#64748b',
         headerStyle: { backgroundColor: '#1e293b' },
         headerTintColor: '#f1f5f9',
+        headerRight: () => <HeaderNotificationBell navigation={navigation} />,
       }}
     >
       <Tab.Screen
@@ -114,21 +131,29 @@ function AppNavigator() {
   const { user } = useAuth();
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: '#1e293b' },
+        headerTintColor: '#f1f5f9',
+      }}
+    >
       {user?.currentMode === 'worker' ? (
-        <Stack.Screen name="WorkerTabs" component={WorkerTabs} />
+        <Stack.Screen name="WorkerTabs" component={WorkerTabs} options={{ headerShown: false }} />
       ) : (
-        <Stack.Screen name="PosterTabs" component={PosterTabs} />
+        <Stack.Screen name="PosterTabs" component={PosterTabs} options={{ headerShown: false }} />
       )}
       {/* Screens accessible from both modes */}
-      <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: true, title: 'Chat' }} />
-      <Stack.Screen name="Review" component={ReviewScreen} options={{ headerShown: true, title: 'Leave a Review' }} />
-      <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: true, title: 'Settings' }} />
-      <Stack.Screen name="Subscription" component={SubscriptionScreen} options={{ headerShown: true, title: 'Subscriptions & Plans' }} />
-      <Stack.Screen name="WorkerVerification" component={WorkerVerificationScreen} options={{ headerShown: true, title: 'ID Verification' }} />
-      <Stack.Screen name="WorkerJobDetail" component={WorkerJobDetailScreen} options={{ headerShown: true, title: 'Job Details' }} />
-      <Stack.Screen name="PosterApplicants" component={PosterApplicantsScreen} options={{ headerShown: true, title: 'Applicants' }} />
-      <Stack.Screen name="PosterActiveJob" component={PosterActiveJobScreen} options={{ headerShown: true, title: 'Active Job' }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ title: 'Chat' }} />
+      <Stack.Screen name="Review" component={ReviewScreen} options={{ title: 'Leave a Review' }} />
+      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen name="Subscription" component={SubscriptionScreen} options={{ title: 'Subscriptions & Plans' }} />
+      <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} options={{ title: 'Notifications' }} />
+      <Stack.Screen name="NotificationPreferences" component={NotificationPreferencesScreen} options={{ title: 'Notification Settings' }} />
+      <Stack.Screen name="EmergencyContact" component={EmergencyContactScreen} options={{ title: 'Emergency Contact' }} />
+      <Stack.Screen name="WorkerVerification" component={WorkerVerificationScreen} options={{ title: 'ID Verification' }} />
+      <Stack.Screen name="WorkerJobDetail" component={WorkerJobDetailScreen} options={{ title: 'Job Details' }} />
+      <Stack.Screen name="PosterApplicants" component={PosterApplicantsScreen} options={{ title: 'Applicants' }} />
+      <Stack.Screen name="PosterActiveJob" component={PosterActiveJobScreen} options={{ title: 'Active Job Session' }} />
     </Stack.Navigator>
   );
 }
@@ -146,8 +171,10 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
-      {user ? <AppNavigator /> : <AuthStack />}
-    </NavigationContainer>
+    <LanguageProvider>
+      <NavigationContainer>
+        {user ? <AppNavigator /> : <AuthStack />}
+      </NavigationContainer>
+    </LanguageProvider>
   );
 }

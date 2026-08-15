@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, ActivityIndicator
+  ScrollView, Alert, ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../i18n';
 
 export default function SettingsScreen({ navigation }) {
   const { user, logout, switchMode } = useAuth();
+  const { language, changeLanguage, t } = useTranslation();
   const [switching, setSwitching] = useState(false);
 
   const handleModeSwitch = async () => {
@@ -22,6 +24,18 @@ export default function SettingsScreen({ navigation }) {
     }
   };
 
+  const handleSelectLanguage = () => {
+    Alert.alert(
+      t('select_language'),
+      'Choose your preferred interface language / अपनी भाषा चुनें',
+      [
+        { text: 'English', onPress: () => changeLanguage('en') },
+        { text: 'हिंदी (Hindi)', onPress: () => changeLanguage('hi') },
+        { text: t('cancel'), style: 'cancel' },
+      ]
+    );
+  };
+
   const handleLogout = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out of WorkMarket?', [
       { text: 'Cancel', style: 'cancel' },
@@ -31,6 +45,7 @@ export default function SettingsScreen({ navigation }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
+      {/* PROFILE HEADER */}
       <View style={styles.profileHeader}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{user?.name?.[0] || 'U'}</Text>
@@ -44,8 +59,9 @@ export default function SettingsScreen({ navigation }) {
         </View>
       </View>
 
+      {/* ACCOUNT & PREFERENCES */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Account & Mode</Text>
+        <Text style={styles.sectionTitle}>Account & Services</Text>
 
         <TouchableOpacity
           style={styles.actionRow}
@@ -84,13 +100,45 @@ export default function SettingsScreen({ navigation }) {
           <Text style={styles.actionArrow}>→</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.actionRow}
+          onPress={() => navigation.navigate('NotificationPreferences')}
+        >
+          <View>
+            <Text style={styles.actionTitle}>🔔 {t('notification_preferences')}</Text>
+            <Text style={styles.actionSub}>Granular alert switches & quiet hours schedule</Text>
+          </View>
+          <Text style={styles.actionArrow}>→</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionRow}
+          onPress={() => navigation.navigate('EmergencyContact')}
+        >
+          <View>
+            <Text style={styles.actionTitle}>🛡️ {t('emergency_contacts')}</Text>
+            <Text style={styles.actionSub}>Configure SOS trusted contact for safety dispatch</Text>
+          </View>
+          <Text style={styles.actionArrow}>→</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionRow} onPress={handleSelectLanguage}>
+          <View>
+            <Text style={styles.actionTitle}>🌐 {t('language')}</Text>
+            <Text style={styles.actionSub}>
+              Current: {language === 'hi' ? 'हिंदी (Hindi)' : 'English'}
+            </Text>
+          </View>
+          <Text style={styles.actionArrow}>→</Text>
+        </TouchableOpacity>
+
         {user?.currentMode === 'worker' && (
           <TouchableOpacity
             style={styles.actionRow}
             onPress={() => navigation.navigate('WorkerVerification')}
           >
             <View>
-              <Text style={styles.actionTitle}>ID Verification</Text>
+              <Text style={styles.actionTitle}>🪪 ID Verification</Text>
               <Text style={styles.actionSub}>Upload government ID to unlock applying to jobs</Text>
             </View>
             <Text style={styles.actionArrow}>→</Text>
@@ -98,12 +146,13 @@ export default function SettingsScreen({ navigation }) {
         )}
       </View>
 
+      {/* PLATFORM & SAFETY */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>App Info & Safety</Text>
 
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Platform</Text>
-          <Text style={styles.infoValue}>WorkMarket v1.0.0 (MVP)</Text>
+          <Text style={styles.infoValue}>WorkMarket v3.0.0</Text>
         </View>
 
         <View style={styles.infoRow}>

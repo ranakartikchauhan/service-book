@@ -106,9 +106,15 @@ function EventCard({ event, updating, onUpdate }) {
         </div>
         <div>
           <a href={mapsUrl} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm">
-            📍 View Location
+            📍 View GPS Map ({lat.toFixed(4)}, {lng.toFixed(4)})
           </a>
         </div>
+        {event.emergencyContact && (
+          <div>
+            <span style={{ color: 'var(--text-muted)' }}>🚨 Emergency Contact:</span>{' '}
+            <strong>{event.emergencyContact.name}</strong> ({event.emergencyContact.phone} - {event.emergencyContact.relationship})
+          </div>
+        )}
         {event.resolvedAt && (
           <div><span style={{ color: 'var(--text-muted)' }}>Resolved:</span> {new Date(event.resolvedAt).toLocaleString()}</div>
         )}
