@@ -1,8 +1,9 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE = 'http://localhost:5000/api'; // Change to your server IP for device testing
-// const API_BASE = 'http://192.168.x.x:5000/api'; // Use your machine's LAN IP for physical device
+// Expo automatically loads EXPO_PUBLIC_* variables from .env
+const API_BASE =
+  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 const api = axios.create({ baseURL: API_BASE, timeout: 15000 });
 
