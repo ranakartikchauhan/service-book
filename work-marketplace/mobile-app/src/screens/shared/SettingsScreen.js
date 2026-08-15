@@ -18,7 +18,21 @@ export default function SettingsScreen({ navigation }) {
     setSwitching(true);
     try {
       await switchMode(nextMode);
-      Alert.alert('Mode Switched', `You are now in ${nextMode.toUpperCase()} mode.`);
+      Alert.alert(
+        'Mode Switched 🎉',
+        `You are now in ${nextMode.toUpperCase()} mode.`,
+        [
+          {
+            text: nextMode === 'worker' ? 'Go to Find Work' : 'Go to My Jobs',
+            onPress: () => {
+              if (navigation.canGoBack()) {
+                navigation.popToTop();
+              }
+              navigation.navigate(nextMode === 'worker' ? 'WorkerTabs' : 'PosterTabs');
+            },
+          },
+        ]
+      );
     } catch (err) {
       Alert.alert('Error', 'Could not switch mode.');
     } finally {
@@ -45,8 +59,29 @@ export default function SettingsScreen({ navigation }) {
     ]);
   };
 
+  const navigateToHome = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate(user?.currentMode === 'worker' ? 'Jobs' : 'MyJobs');
+    }
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
+      {/* QUICK HOME RETURN BAR */}
+      <TouchableOpacity
+        style={styles.backHomeBtn}
+        onPress={navigateToHome}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="home-outline" size={16} color={COLORS.primaryLight} />
+        <Text style={styles.backHomeTxt}>
+          {user?.currentMode === 'worker' ? 'Go to Browse Jobs' : 'Go to My Posted Jobs'}
+        </Text>
+        <Ionicons name="chevron-forward" size={14} color={COLORS.primaryLight} style={{ marginLeft: 'auto' }} />
+      </TouchableOpacity>
+
       {/* PROFILE HERO HEADER */}
       <View style={[styles.profileHeader, SHADOWS.medium]}>
         <View style={styles.avatar}>
@@ -218,6 +253,20 @@ export default function SettingsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   scroll: { padding: 18, paddingBottom: 40 },
+
+  backHomeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.25)',
+  },
+  backHomeTxt: { color: COLORS.primaryLight, fontSize: 13, fontWeight: '800' },
 
   profileHeader: {
     backgroundColor: COLORS.surface,
