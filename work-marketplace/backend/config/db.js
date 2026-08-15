@@ -1,32 +1,37 @@
 const mongoose = require('mongoose');
 
-let isConnected = false;
+let cachedConnection = null;
 
 const connectDB = async () => {
-  if (isConnected) return;
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    return cachedConnection;
+  }
+
+  const mongoUri = process.env.MONGO_URI;
+  if (!mongoUri) {
+    console.error('❌ MONGO_URI environment variable is missing!');
+    throw new Error('MONGO_URI is required');
+  }
 
   const opts = {
-    serverSelectionTimeoutMS: 5000,
+    bufferCommands: false,
+    serverSelectionTimeoutMS: 8000,
     socketTimeoutMS: 45000,
   };
 
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, opts);
-    isConnected = true;
-    console.log(`✅ MongoDB connected: ${conn.connection.host}`);
-
-    mongoose.connection.on('disconnected', () => {
-      console.warn('⚠️  MongoDB disconnected. Attempting to reconnect...');
-      isConnected = false;
-    });
-
-    mongoose.connection.on('reconnected', () => {
-      console.log('✅ MongoDB reconnected');
-      isConnected = true;
-    });
+    if (!cachedConnection) {
+      cachedConnection = await mongoose.connect(mongoUri, opts);
+      console.log(`✅ MongoDB connected: ${cachedConnection.connection.host}`);
+    }
+    return cachedConnection;
   } catch (error) {
+    cachedConnection = null;
     console.error(`❌ MongoDB connection error: ${error.message}`);
-    process.exit(1);
+    if (!process.env.VERCEL) {
+      process.exit(1);
+    }
+    throw error;
   }
 };
 
