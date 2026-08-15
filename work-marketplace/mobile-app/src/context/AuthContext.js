@@ -26,15 +26,22 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async ({ phone, password }) => {
-    const { data } = await api.post('/auth/login', { phone, password });
+  const login = async ({ phone, email, password }) => {
+    const { data } = await api.post('/auth/login', { phone, email, password });
     await AsyncStorage.setItem('userToken', data.data.token);
     setUser(data.data.user);
     return data.data.user;
   };
 
-  const register = async ({ name, phone, password }) => {
-    const { data } = await api.post('/auth/register', { name, phone, password });
+  const loginWithOtp = async ({ email, otp }) => {
+    const { data } = await api.post('/auth/login-with-otp', { email, otp });
+    await AsyncStorage.setItem('userToken', data.data.token);
+    setUser(data.data.user);
+    return data.data.user;
+  };
+
+  const register = async ({ name, phone, email, password, otp }) => {
+    const { data } = await api.post('/auth/register', { name, phone, email, password, otp });
     await AsyncStorage.setItem('userToken', data.data.token);
     setUser(data.data.user);
     return data.data.user;
@@ -56,7 +63,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, switchMode, refreshUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        loginWithOtp,
+        register,
+        logout,
+        switchMode,
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

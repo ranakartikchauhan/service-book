@@ -19,7 +19,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       lowercase: true,
       trim: true,
-      sparse: true, // allows multiple null values (email is optional)
+      sparse: true, // allows multiple null values
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
     },
     // Password auth for development. Swap to OTP-only before launch.
     passwordHash: {
