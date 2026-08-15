@@ -85,6 +85,13 @@ router.post('/:jobId/messages', async (req, res, next) => {
       io.to(`job:${job._id}`).emit('chat:message', populated);
     }
 
+    // Send push notification if recipient has FCM token
+    const recipient = await require('../models/User').findById(recipientId);
+    if (recipient?.fcmToken) {
+      const { notifyNewMessage } = require('../services/fcmService');
+      notifyNewMessage(recipient.fcmToken, req.user.name);
+    }
+
     res.status(201).json({ success: true, data: { message: populated } });
   } catch (error) {
     next(error);

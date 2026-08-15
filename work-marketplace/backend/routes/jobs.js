@@ -245,6 +245,18 @@ router.patch('/:id/start', async (req, res, next) => {
     job.status = JOB_STATUS.IN_PROGRESS;
     await job.save();
 
+    // Notify poster that worker has started
+    const poster = await User.findById(job.posterId);
+    if (poster?.fcmToken) {
+      const { sendPushNotification } = require('../services/fcmService');
+      sendPushNotification({
+        token: poster.fcmToken,
+        title: '🚀 Service Started!',
+        body: `${req.user.name} has started work on "${job.title}".`,
+        data: { type: 'job_started', jobId: job._id.toString() },
+      });
+    }
+
     res.json({ success: true, message: 'Job marked as started' });
   } catch (error) {
     next(error);
