@@ -3,10 +3,9 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import * as Location from 'expo-location';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../api/client';
-import { getDeviceLocation, getAddressFromCoords } from '../../utils/location';
+import { getDeviceLocation, getAddressFromCoords, getCoordsFromAddress } from '../../utils/location';
 import { COLORS, SHADOWS } from '../../theme';
 
 const CATEGORY_ICON_MAP = {
@@ -60,7 +59,7 @@ export default function PostJobScreen({ navigation }) {
 
   useEffect(() => {
     const init = async () => {
-      // Auto-detect location silently on initial screen load
+      // Auto-detect home location on initial screen load
       detectLocation(false);
 
       try {
@@ -84,25 +83,18 @@ export default function PostJobScreen({ navigation }) {
       return Alert.alert('Missing Fields', 'Please fill in title, description, category, and budget.');
     }
     if (!form.addressText.trim()) {
-      return Alert.alert('Missing Location', 'Please provide an address or landmark for the job.');
+      return Alert.alert('Missing Location', 'Please provide an address or tap "Share Home Location".');
     }
 
     setLoading(true);
     try {
       let finalCoords = coords;
 
-      // If user typed address without GPS, forward geocode it
-      if (!finalCoords && form.addressText.trim()) {
-        try {
-          const geocoded = await Location.geocodeAsync(form.addressText.trim());
-          if (geocoded && geocoded[0]) {
-            finalCoords = {
-              longitude: geocoded[0].longitude,
-              latitude: geocoded[0].latitude,
-            };
-          }
-        } catch (e) {
-          console.warn('Forward geocoding error:', e);
+      // If user typed/modified address text, resolve coordinates with OSM fallback
+      if (form.addressText.trim()) {
+        const addressCoords = await getCoordsFromAddress(form.addressText.trim());
+        if (addressCoords) {
+          finalCoords = addressCoords;
         }
       }
 
@@ -111,7 +103,7 @@ export default function PostJobScreen({ navigation }) {
         finalCoords = await getDeviceLocation({ showAlert: false });
       }
 
-      // Fallback only if device completely refuses GPS
+      // Safe default fallback only if device completely refuses GPS
       if (!finalCoords) {
         finalCoords = { longitude: 77.2090, latitude: 28.6139 };
       }
@@ -125,7 +117,7 @@ export default function PostJobScreen({ navigation }) {
       };
 
       await api.post('/jobs', payload);
-      Alert.alert('Success 🎉', 'Your job has been posted! Workers nearby can now view and apply.', [
+      Alert.alert('Success 🎉', 'Your service request is posted! Nearby workers can now view and apply.', [
         { text: 'View My Jobs', onPress: () => navigation.navigate('MyJobs') }
       ]);
       setForm({
@@ -220,12 +212,12 @@ export default function PostJobScreen({ navigation }) {
             />
           </View>
 
-          {/* LOCATION WITH AUTO-GPS DETECT */}
+          {/* HOME LOCATION SHARING */}
           <View style={styles.inputGroup}>
             <View style={styles.locationHeaderRow}>
               <View style={styles.labelRow}>
-                <Ionicons name="location-outline" size={14} color={COLORS.textSecondary} />
-                <Text style={styles.label}>Address / Area *</Text>
+                <Ionicons name="home-outline" size={14} color={COLORS.textSecondary} />
+                <Text style={styles.label}>Home / Job Location *</Text>
               </View>
 
               <TouchableOpacity
@@ -238,8 +230,8 @@ export default function PostJobScreen({ navigation }) {
                   <ActivityIndicator size="small" color={COLORS.primaryLight} />
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Ionicons name="navigate" size={12} color={COLORS.primaryLight} />
-                    <Text style={styles.detectLocationTxt}>Detect My Location</Text>
+                    <Ionicons name="locate" size={13} color={COLORS.primaryLight} />
+                    <Text style={styles.detectLocationTxt}>Share Home Location</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -247,19 +239,30 @@ export default function PostJobScreen({ navigation }) {
 
             <TextInput
               style={styles.input}
-              placeholder="e.g. Tower 4, Flat 502, Sector 62, Noida"
+              placeholder="e.g. Flat 402, Tower 5, Sector 62, Noida"
               placeholderTextColor={COLORS.textMuted}
               value={form.addressText}
               onChangeText={(v) => setForm({ ...form, addressText: v })}
             />
 
-            {coords && (
+            {coords ? (
               <View style={styles.gpsPill}>
-                <Ionicons name="checkmark-circle" size={12} color={COLORS.success} />
+                <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />
                 <Text style={styles.gpsPillTxt}>
-                  GPS Coordinates Locked ({coords.latitude.toFixed(4)}°, {coords.longitude.toFixed(4)}°)
+                  GPS Location Locked ({coords.latitude.toFixed(4)}°, {coords.longitude.toFixed(4)}°) — Workers nearby will see this immediately
                 </Text>
               </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.tapGpsPrompt}
+                onPress={() => detectLocation(true)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="navigate-circle-outline" size={16} color={COLORS.warning} />
+                <Text style={styles.tapGpsPromptTxt}>
+                  Tap to auto-detect your exact home address via GPS
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -370,25 +373,41 @@ const styles = StyleSheet.create({
   },
   detectLocationBtn: {
     backgroundColor: 'rgba(99, 102, 241, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.3)',
   },
   detectLocationTxt: { fontSize: 11, fontWeight: '800', color: COLORS.primaryLight },
 
   gpsPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
+    borderColor: 'rgba(16, 185, 129, 0.25)',
   },
-  gpsPillTxt: { fontSize: 10, color: COLORS.success, fontWeight: '700', flex: 1 },
+  gpsPillTxt: { fontSize: 11, color: COLORS.success, fontWeight: '700', flex: 1, lineHeight: 15 },
+
+  tapGpsPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  tapGpsPromptTxt: { fontSize: 11, color: COLORS.warning, fontWeight: '700', flex: 1 },
 
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   label: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
