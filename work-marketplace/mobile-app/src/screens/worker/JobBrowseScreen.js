@@ -205,6 +205,8 @@ export default function JobBrowseScreen({ navigation }) {
           trackColor={{ false: COLORS.surfaceBorderLight, true: COLORS.success }}
           thumbColor="#FFFFFF"
         />
+      </View>
+
       {/* SEARCH BAR (Location & Keyword Search) */}
       <View style={styles.searchBarContainer}>
         <View style={styles.searchBar}>
