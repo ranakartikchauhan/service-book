@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+*/node_modules/
+*/*/node_modules/
+.pnp
+.pnp.js
+
+# Production / Builds
+dist/
+build/
+.next/
+out/
+.expo/
+web-build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# EAS / Fastlane
+.eas/
+*.keystore
+*.jks

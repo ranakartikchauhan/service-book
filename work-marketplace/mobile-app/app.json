@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "WorkMarket",
+    "slug": "work-marketplace",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0f172a",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.workmarket.app"
+    },
+    "android": {
+      "package": "com.workmarket.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f172a",
+        "foregroundImage": "./assets/icon.png"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    }
+  }
+}
