@@ -9,6 +9,7 @@ import Categories from './pages/Categories';
 import Transactions from './pages/Transactions';
 import SubscriptionPlans from './pages/SubscriptionPlans';
 import Subscribers from './pages/Subscribers';
+import Users from './pages/Users';
 import Config from './pages/Config';
 import { useEffect, useState } from 'react';
 import api from './api/client';
