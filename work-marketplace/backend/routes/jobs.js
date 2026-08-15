@@ -381,12 +381,13 @@ router.get('/:id/applications', async (req, res, next) => {
 });
 
 // ─── HIRE A WORKER (poster accepts an application) ───────────────────────────
-// PATCH /api/jobs/:id/hire/:applicationId
-router.patch('/:id/hire/:applicationId', async (req, res, next) => {
+// PATCH or POST /api/jobs/:id/hire/:applicationId
+// POST or PATCH /api/jobs/:id/applications/:applicationId/accept
+const handleHireWorker = async (req, res, next) => {
   try {
     const job = await Job.findOne({ _id: req.params.id, posterId: req.user._id });
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
-    if (job.status !== JOB_STATUS.OPEN) {
+    if (job.status !== JOB_STATUS.OPEN && job.status !== 'open') {
       return res.status(400).json({ success: false, message: 'Job is no longer open for hiring' });
     }
 
@@ -427,13 +428,18 @@ router.patch('/:id/hire/:applicationId', async (req, res, next) => {
 
     res.json({
       success: true,
-      message: `Worker hired. Proceed to payment to confirm the booking.`,
-      data: { assignedWorkerId: application.workerId },
+      message: `Worker hired successfully!`,
+      data: { assignedWorkerId: application.workerId, job },
     });
   } catch (error) {
     next(error);
   }
-});
+};
+
+router.patch('/:id/hire/:applicationId', handleHireWorker);
+router.post('/:id/hire/:applicationId', handleHireWorker);
+router.post('/:id/applications/:applicationId/accept', handleHireWorker);
+router.patch('/:id/applications/:applicationId/accept', handleHireWorker);
 
 // ─── WITHDRAW APPLICATION (worker) ───────────────────────────────────────────
 // PATCH /api/jobs/:id/withdraw-application
