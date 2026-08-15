@@ -27,6 +27,7 @@ import PosterActiveJobScreen from '../screens/poster/ActiveJobScreen';
 import ChatScreen from '../screens/shared/ChatScreen';
 import ReviewScreen from '../screens/shared/ReviewScreen';
 import SettingsScreen from '../screens/shared/SettingsScreen';
+import SubscriptionScreen from '../screens/shared/SubscriptionScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -123,6 +124,7 @@ function AppNavigator() {
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: true, title: 'Chat' }} />
       <Stack.Screen name="Review" component={ReviewScreen} options={{ headerShown: true, title: 'Leave a Review' }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: true, title: 'Settings' }} />
+      <Stack.Screen name="Subscription" component={SubscriptionScreen} options={{ headerShown: true, title: 'Subscriptions & Plans' }} />
       <Stack.Screen name="WorkerVerification" component={WorkerVerificationScreen} options={{ headerShown: true, title: 'ID Verification' }} />
       <Stack.Screen name="WorkerJobDetail" component={WorkerJobDetailScreen} options={{ headerShown: true, title: 'Job Details' }} />
       <Stack.Screen name="PosterApplicants" component={PosterApplicantsScreen} options={{ headerShown: true, title: 'Applicants' }} />

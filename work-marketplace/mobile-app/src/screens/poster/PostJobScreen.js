@@ -18,6 +18,7 @@ export default function PostJobScreen({ navigation }) {
     budgetType: 'fixed',
     addressText: '',
     scheduledDate: new Date().toISOString().split('T')[0],
+    isUrgent: false,
   });
 
   useEffect(() => {
@@ -162,6 +163,22 @@ export default function PostJobScreen({ navigation }) {
           </View>
 
           <TouchableOpacity
+            style={[styles.urgentToggleBox, form.isUrgent && styles.urgentToggleBoxActive]}
+            onPress={() => setForm({ ...form, isUrgent: !form.isUrgent })}
+            activeOpacity={0.8}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.urgentToggleTitle, form.isUrgent && styles.urgentToggleTitleActive]}>
+                🔥 Mark as Urgent / Need Today
+              </Text>
+              <Text style={styles.urgentToggleDesc}>
+                Highlighted in red and instantly push-notified to active nearby workers
+              </Text>
+            </View>
+            <Text style={{ fontSize: 20 }}>{form.isUrgent ? '✅' : '⬜'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={[styles.submitBtn, loading && styles.btnDisabled]}
             onPress={handlePost}
             disabled={loading}
@@ -189,6 +206,34 @@ const styles = StyleSheet.create({
   catText: { color: '#94a3b8', fontSize: 13, fontWeight: '600' },
   catTextActive: { color: 'white' },
   row: { flexDirection: 'row', alignItems: 'center' },
+  urgentToggleBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#334155',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: '#475569',
+  },
+  urgentToggleBoxActive: {
+    backgroundColor: '#3b1c24',
+    borderColor: '#ef4444',
+  },
+  urgentToggleTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#f1f5f9',
+  },
+  urgentToggleTitleActive: {
+    color: '#fca5a5',
+  },
+  urgentToggleDesc: {
+    fontSize: 11,
+    color: '#94a3b8',
+    marginTop: 2,
+  },
   rateTypeToggle: { flexDirection: 'row', backgroundColor: '#334155', borderRadius: 10, padding: 3, borderWidth: 1, borderColor: '#475569' },
   rateBtn: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 8 },
   rateBtnActive: { backgroundColor: '#6366f1' },

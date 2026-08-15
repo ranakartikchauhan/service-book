@@ -7,6 +7,8 @@ const navItems = [
   { to: '/jobs', label: 'All Jobs', icon: '💼' },
   { to: '/users', label: 'Users', icon: '👥' },
   { to: '/transactions', label: 'Transactions', icon: '💰' },
+  { to: '/subscription-plans', label: 'Subscription Plans', icon: '💳' },
+  { to: '/subscribers', label: 'Subscribers', icon: '💎' },
   { to: '/categories', label: 'Categories', icon: '🏷️' },
   { to: '/config', label: 'Settings', icon: '⚙️' },
 ];

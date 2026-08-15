@@ -79,6 +79,24 @@ const workerProfileSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // V2: Available Now live switch for instant urgent matching
+    isAvailableNow: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    liveLocation: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        default: [0, 0],
+      },
+      updatedAt: Date,
+    },
     // Payout details — sensitive, stored encrypted at rest in production
     payoutDetails: {
       bankAccountNumber: String,

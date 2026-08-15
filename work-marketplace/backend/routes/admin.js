@@ -5,6 +5,8 @@ const Job = require('../models/Job');
 const Transaction = require('../models/Transaction');
 const SafetyEvent = require('../models/SafetyEvent');
 const Category = require('../models/Category');
+const SubscriptionPlan = require('../models/SubscriptionPlan');
+const UserSubscription = require('../models/UserSubscription');
 const PlatformConfig = require('../models/PlatformConfig');
 const { DEFAULT_CATEGORIES, VERIFICATION_STATUS, SAFETY_STATUS } = require('../config/constants');
 const verifyAdminToken = require('../middleware/verifyAdminToken');
@@ -363,18 +365,152 @@ router.delete('/categories/:id', async (req, res, next) => {
   }
 });
 
-// ─── SEED DEFAULT CATEGORIES (call once on first run) ─────────────────────────
-// POST /api/admin/seed-categories
-router.post('/seed-categories', async (req, res, next) => {
+// ─── SUBSCRIPTION PLANS MANAGEMENT (Admin) ──────────────────────────────────
+// GET /api/admin/subscription-plans
+router.get('/subscription-plans', async (req, res, next) => {
   try {
-    const existing = await Category.countDocuments();
-    if (existing > 0) {
-      return res.json({ success: true, message: 'Categories already exist' });
+    const plans = await SubscriptionPlan.find().sort({ targetRole: 1, sortOrder: 1, price: 1 });
+    res.json({ success: true, data: { plans } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/admin/subscription-plans
+router.post('/subscription-plans', async (req, res, next) => {
+  try {
+    const { name, targetRole, price, billingCycle, isFree, limits, displayFeatures, sortOrder } = req.body;
+    if (!name || !targetRole) {
+      return res.status(400).json({ success: false, message: 'Name and targetRole are required' });
     }
-    await Category.insertMany(
-      DEFAULT_CATEGORIES.map((c, i) => ({ ...c, sortOrder: i }))
-    );
-    res.json({ success: true, message: `${DEFAULT_CATEGORIES.length} categories seeded` });
+
+    const plan = await SubscriptionPlan.create({
+      name,
+      targetRole,
+      price: price || 0,
+      billingCycle: billingCycle || (isFree ? 'free' : 'monthly'),
+      isFree: !!isFree,
+      limits: limits || {},
+      displayFeatures: displayFeatures || [],
+      sortOrder: sortOrder || 0,
+    });
+
+    res.status(201).json({ success: true, message: 'Plan created', data: { plan } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /api/admin/subscription-plans/:id
+router.put('/subscription-plans/:id', async (req, res, next) => {
+  try {
+    const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
+    res.json({ success: true, message: 'Plan updated', data: { plan } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PATCH /api/admin/subscription-plans/:id/toggle-active
+router.patch('/subscription-plans/:id/toggle-active', async (req, res, next) => {
+  try {
+    const plan = await SubscriptionPlan.findById(req.params.id);
+    if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
+    if (plan.isFree) return res.status(400).json({ success: false, message: 'Free tier cannot be disabled' });
+
+    plan.active = !plan.active;
+    await plan.save();
+    res.json({ success: true, message: `Plan ${plan.active ? 'activated' : 'deactivated'}`, data: { plan } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─── SUBSCRIBERS LIST & MANUAL GRANT ──────────────────────────────────────────
+// GET /api/admin/subscribers?role=&status=&page=&limit=
+router.get('/subscribers', async (req, res, next) => {
+  try {
+    const { role, status, page = 1, limit = 20 } = req.query;
+    const filter = {};
+    if (role) filter.role = role;
+    if (status) filter.status = status;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const [subscribers, total] = await Promise.all([
+      UserSubscription.find(filter)
+        .populate('userId', 'name phone email profilePhotoUrl')
+        .populate('planId', 'name price isFree targetRole')
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      UserSubscription.countDocuments(filter),
+    ]);
+
+    res.json({ success: true, data: { subscribers, total, page: parseInt(page) } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/admin/subscribers/:userId/grant (Manual override / promotional grant)
+router.post('/subscribers/:userId/grant', async (req, res, next) => {
+  try {
+    const { planId, days = 30 } = req.body;
+    const plan = await SubscriptionPlan.findById(planId);
+    if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
+
+    let sub = await UserSubscription.findOne({ userId: req.params.userId, role: plan.targetRole });
+    if (!sub) {
+      sub = new UserSubscription({ userId: req.params.userId, role: plan.targetRole });
+    }
+
+    sub.planId = plan._id;
+    sub.status = 'active';
+    sub.startDate = new Date();
+    sub.endDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    sub.paymentHistory.push({
+      amount: 0,
+      paidAt: new Date(),
+      razorpayPaymentId: 'admin_manual_grant',
+      status: 'granted_by_admin',
+    });
+
+    await sub.save();
+    const populated = await UserSubscription.findById(sub._id)
+      .populate('userId', 'name phone')
+      .populate('planId', 'name price');
+
+    res.json({ success: true, message: `Successfully granted ${plan.name} to user`, data: { subscription: populated } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/admin/revenue/breakdown
+router.get('/revenue/breakdown', async (req, res, next) => {
+  try {
+    const [commissionStats, subscriptionStats] = await Promise.all([
+      Transaction.aggregate([
+        { $match: { status: 'released' } },
+        { $group: { _id: null, totalCommission: { $sum: '$platformCommission' }, totalGross: { $sum: '$grossAmount' } } },
+      ]),
+      UserSubscription.aggregate([
+        { $unwind: '$paymentHistory' },
+        { $match: { 'paymentHistory.status': 'success' } },
+        { $group: { _id: null, totalSubscriptionRevenue: { $sum: '$paymentHistory.amount' } } },
+      ]),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        commissionRevenue: commissionStats[0]?.totalCommission || 0,
+        grossJobVolume: commissionStats[0]?.totalGross || 0,
+        subscriptionRevenue: subscriptionStats[0]?.totalSubscriptionRevenue || 0,
+        totalCombinedRevenue: (commissionStats[0]?.totalCommission || 0) + (subscriptionStats[0]?.totalSubscriptionRevenue || 0),
+      },
+    });
   } catch (error) {
     next(error);
   }

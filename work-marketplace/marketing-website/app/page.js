@@ -31,6 +31,7 @@ export default function Home() {
           <div className="nav-links">
             <a href="#how-it-works">How it works</a>
             <a href="#categories">Categories</a>
+            <a href="#pricing">Pricing</a>
             <a href="#safety">Safety</a>
             <a href="#download">Download</a>
           </div>
@@ -184,6 +185,80 @@ export default function Home() {
             <div style={{ fontSize: 64, marginBottom: 16 }}>💼</div>
             <div style={{ fontSize: 36, fontWeight: 800, marginBottom: 8 }}>₹15,000+</div>
             <div style={{ fontSize: 16, opacity: 0.8 }}>Average monthly earnings for active workers</div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing & Subscriptions (V2) */}
+      <section className="section" id="pricing">
+        <div className="container">
+          <div className="section-header">
+            <span className="section-tag">Simple & Transparent</span>
+            <h2>Fair plans for workers & households</h2>
+            <p>Start 100% free. Upgrade only when you want superpowers.</p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, marginTop: 40 }}>
+            {/* Free Tier */}
+            <div className="trust-card" style={{ border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>
+                Free Forever
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-main)', marginBottom: 4 }}>Basic Plan</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>₹0</div>
+              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12, flex: 1, padding: 0, marginBottom: 24 }}>
+                <li style={{ color: 'var(--text-secondary)', fontSize: 14 }}>✓ 10 Job Applications / mo (Workers)</li>
+                <li style={{ color: 'var(--text-secondary)', fontSize: 14 }}>✓ 3 Job Postings / mo (Posters)</li>
+                <li style={{ color: 'var(--text-secondary)', fontSize: 14 }}>✓ Secure Razorpay Escrow Protection</li>
+                <li style={{ color: 'var(--text-secondary)', fontSize: 14 }}>✓ Standard GPS Search & Chat</li>
+              </ul>
+              <a href="#download" className="btn btn-outline" style={{ width: '100%', textAlign: 'center', justifyContent: 'center' }}>
+                Get Started Free
+              </a>
+            </div>
+
+            {/* Worker Pro */}
+            <div className="trust-card" style={{ border: '2px solid var(--primary)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: -12, right: 24, backgroundColor: 'var(--primary)', color: 'white', fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 999 }}>
+                WORKER FAVORITE
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', marginBottom: 8 }}>
+                Worker Pro
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-main)', marginBottom: 4 }}>Unlimited Earning</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--primary)', marginBottom: 16 }}>
+                ₹299<span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 400 }}> / month</span>
+              </div>
+              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12, flex: 1, padding: 0, marginBottom: 24 }}>
+                <li style={{ color: 'var(--text-main)', fontSize: 14, fontWeight: 600 }}>✓ Unlimited Job Applications</li>
+                <li style={{ color: 'var(--text-main)', fontSize: 14, fontWeight: 600 }}>✓ ⚡ Top Profile Boost in Nearby Searches</li>
+                <li style={{ color: 'var(--text-main)', fontSize: 14, fontWeight: 600 }}>✓ 💰 5% Lower Platform Commission</li>
+                <li style={{ color: 'var(--text-secondary)', fontSize: 14 }}>✓ Instant Match Urgent Job Push Alerts</li>
+              </ul>
+              <a href="#download" className="btn btn-primary" style={{ width: '100%', textAlign: 'center', justifyContent: 'center' }}>
+                Upgrade to Pro
+              </a>
+            </div>
+
+            {/* Poster Business */}
+            <div className="trust-card" style={{ border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>
+                Poster Business
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-main)', marginBottom: 4 }}>Power Households</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--text-main)', marginBottom: 16 }}>
+                ₹499<span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 400 }}> / month</span>
+              </div>
+              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12, flex: 1, padding: 0, marginBottom: 24 }}>
+                <li style={{ color: 'var(--text-main)', fontSize: 14, fontWeight: 600 }}>✓ Unlimited Job Postings</li>
+                <li style={{ color: 'var(--text-main)', fontSize: 14, fontWeight: 600 }}>✓ ⚡ Priority Matching with Top Workers</li>
+                <li style={{ color: 'var(--text-secondary)', fontSize: 14 }}>✓ Recurring Weekly/Monthly Cleaning Scheduler</li>
+                <li style={{ color: 'var(--text-secondary)', fontSize: 14 }}>✓ Dedicated Priority Support</li>
+              </ul>
+              <a href="#download" className="btn btn-outline" style={{ width: '100%', textAlign: 'center', justifyContent: 'center' }}>
+                Join as Business
+              </a>
+            </div>
           </div>
         </div>
       </section>

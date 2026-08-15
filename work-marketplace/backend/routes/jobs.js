@@ -14,6 +14,10 @@ const {
   notifyApplicationRejected,
   notifyNewApplicant,
 } = require('../services/fcmService');
+const {
+  checkWorkerApplicationLimit,
+  checkPosterJobPostLimit,
+} = require('../middleware/checkSubscriptionLimits');
 
 const router = express.Router();
 
@@ -39,9 +43,12 @@ router.use(verifyUserToken);
 
 // ─── CREATE JOB (poster) ──────────────────────────────────────────────────────
 // POST /api/jobs
-router.post('/', uploadPublic.array('photos', 5), async (req, res, next) => {
+router.post('/', uploadPublic.array('photos', 5), checkPosterJobPostLimit, async (req, res, next) => {
   try {
-    const { category, title, description, longitude, latitude, addressText, scheduledDate, budgetType, budgetAmount, estimatedDurationHours } = req.body;
+    const {
+      category, title, description, longitude, latitude, addressText,
+      scheduledDate, budgetType, budgetAmount, estimatedDurationHours, isUrgent
+    } = req.body;
 
     if (!category || !title || !description || !longitude || !latitude || !scheduledDate || !budgetAmount) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
@@ -64,6 +71,7 @@ router.post('/', uploadPublic.array('photos', 5), async (req, res, next) => {
       budgetAmount: parseFloat(budgetAmount),
       estimatedDurationHours: estimatedDurationHours ? parseFloat(estimatedDurationHours) : undefined,
       photos,
+      isUrgent: isUrgent === 'true' || isUrgent === true,
     });
 
     // Increment poster's job count
@@ -72,6 +80,12 @@ router.post('/', uploadPublic.array('photos', 5), async (req, res, next) => {
       { $inc: { jobsPosted: 1 } }
     );
 
+    // Track usage in subscription
+    if (req.userSubscription) {
+      req.userSubscription.usageThisCycle.jobsPostedUsed += 1;
+      await req.userSubscription.save();
+    }
+
     res.status(201).json({ success: true, data: { job } });
   } catch (error) {
     next(error);
@@ -79,10 +93,10 @@ router.post('/', uploadPublic.array('photos', 5), async (req, res, next) => {
 });
 
 // ─── GET NEARBY JOBS (worker) ─────────────────────────────────────────────────
-// GET /api/jobs/nearby?lng=&lat=&radius=&category=&page=&limit=
+// GET /api/jobs/nearby?lng=&lat=&radius=&category=&isUrgent=&sortBy=&page=&limit=
 router.get('/nearby', async (req, res, next) => {
   try {
-    const { lng, lat, radius = 10, category, page = 1, limit = 20 } = req.query;
+    const { lng, lat, radius = 10, category, isUrgent, sortBy, page = 1, limit = 20 } = req.query;
 
     if (!lng || !lat) {
       return res.status(400).json({ success: false, message: 'Longitude and latitude are required' });
@@ -99,19 +113,25 @@ router.get('/nearby', async (req, res, next) => {
     };
 
     if (category) query.category = category;
+    if (isUrgent === 'true') query.isUrgent = true;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const jobs = await Job.find(query)
+    let jobQuery = Job.find(query)
       .populate('category', 'name icon')
       .populate('posterId', 'name profilePhotoUrl')
       .skip(skip)
       .limit(parseInt(limit));
 
+    if (sortBy === 'budget_high') jobQuery = jobQuery.sort({ budgetAmount: -1 });
+    if (sortBy === 'newest') jobQuery = jobQuery.sort({ createdAt: -1 });
+
+    const jobs = await jobQuery;
+
     // Attach poster rating to each job
     const jobsWithRating = await Promise.all(
       jobs.map(async (job) => {
-        const posterProfile = await require('../models/PosterProfile').findOne({ userId: job.posterId._id }, 'rating');
+        const posterProfile = await require('../models/PosterProfile').findOne({ userId: job.posterId?._id }, 'rating');
         return { ...job.toObject(), posterRating: posterProfile?.rating || { average: 0, count: 0 } };
       })
     );
@@ -255,7 +275,7 @@ router.patch('/:id/complete', async (req, res, next) => {
 
 // ─── APPLY TO JOB (worker) ────────────────────────────────────────────────────
 // POST /api/jobs/:id/apply
-router.post('/:id/apply', async (req, res, next) => {
+router.post('/:id/apply', checkWorkerApplicationLimit, async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.id);
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
@@ -283,6 +303,12 @@ router.post('/:id/apply', async (req, res, next) => {
       proposedRate: parseFloat(proposedRate),
       message: message || '',
     });
+
+    // Track usage in subscription
+    if (req.userSubscription) {
+      req.userSubscription.usageThisCycle.applicationsUsed += 1;
+      await req.userSubscription.save();
+    }
 
     // Notify the poster
     const poster = await User.findById(job.posterId);

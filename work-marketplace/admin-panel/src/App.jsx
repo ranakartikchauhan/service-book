@@ -7,6 +7,8 @@ import SafetyEvents from './pages/SafetyEvents';
 import Jobs from './pages/Jobs';
 import Categories from './pages/Categories';
 import Transactions from './pages/Transactions';
+import SubscriptionPlans from './pages/SubscriptionPlans';
+import Subscribers from './pages/Subscribers';
 import Config from './pages/Config';
 import { useEffect, useState } from 'react';
 import api from './api/client';
@@ -40,6 +42,8 @@ function ProtectedLayout() {
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/users" element={<Users />} />
           <Route path="/transactions" element={<Transactions />} />
+          <Route path="/subscription-plans" element={<SubscriptionPlans />} />
+          <Route path="/subscribers" element={<Subscribers />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/config" element={<Config />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

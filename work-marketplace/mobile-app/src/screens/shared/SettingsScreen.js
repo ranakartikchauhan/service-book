@@ -69,6 +69,21 @@ export default function SettingsScreen({ navigation }) {
           )}
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.actionRow}
+          onPress={() => navigation.navigate('Subscription')}
+        >
+          <View>
+            <Text style={styles.actionTitle}>💳 Subscriptions & Plans</Text>
+            <Text style={styles.actionSub}>
+              {user?.currentMode === 'worker'
+                ? 'Upgrade to Worker Pro for unlimited applications & boost'
+                : 'Upgrade to Poster Business for unlimited posts & priority'}
+            </Text>
+          </View>
+          <Text style={styles.actionArrow}>→</Text>
+        </TouchableOpacity>
+
         {user?.currentMode === 'worker' && (
           <TouchableOpacity
             style={styles.actionRow}

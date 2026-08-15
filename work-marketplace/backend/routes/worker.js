@@ -175,4 +175,90 @@ router.put('/payout-details', async (req, res, next) => {
   }
 });
 
+// ─── AVAILABILITY TOGGLE ("Available Now" - V2) ──────────────────────────────
+// PUT /api/worker/availability-toggle
+router.put('/availability-toggle', async (req, res, next) => {
+  try {
+    const { isAvailableNow, longitude, latitude } = req.body;
+    const updates = {};
+    if (isAvailableNow !== undefined) updates.isAvailableNow = Boolean(isAvailableNow);
+    if (longitude !== undefined && latitude !== undefined) {
+      updates.liveLocation = {
+        type: 'Point',
+        coordinates: [parseFloat(longitude), parseFloat(latitude)],
+        updatedAt: new Date(),
+      };
+    }
+
+    const profile = await WorkerProfile.findOneAndUpdate(
+      { userId: req.user._id },
+      updates,
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: `Availability updated: ${profile.isAvailableNow ? 'Active' : 'Offline'}`,
+      data: { isAvailableNow: profile.isAvailableNow, liveLocation: profile.liveLocation },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─── SAVED SEARCHES (V2) ──────────────────────────────────────────────────────
+const SavedSearch = require('../models/SavedSearch');
+
+// GET /api/worker/saved-searches
+router.get('/saved-searches', async (req, res, next) => {
+  try {
+    const searches = await SavedSearch.find({ workerId: req.user._id }).sort({ createdAt: -1 });
+    res.json({ success: true, data: { searches } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/worker/saved-searches
+router.post('/saved-searches', async (req, res, next) => {
+  try {
+    const { title, category, longitude, latitude, addressText, radiusKm, minBudget, pushAlerts } = req.body;
+    if (!longitude || !latitude) {
+      return res.status(400).json({ success: false, message: 'Location coordinates are required' });
+    }
+
+    const savedSearch = await SavedSearch.create({
+      workerId: req.user._id,
+      title: title || 'Nearby Job Alert',
+      category: category || null,
+      location: {
+        type: 'Point',
+        coordinates: [parseFloat(longitude), parseFloat(latitude)],
+        addressText,
+      },
+      radiusKm: radiusKm ? parseFloat(radiusKm) : 10,
+      minBudget: minBudget ? parseFloat(minBudget) : 0,
+      pushAlerts: pushAlerts !== undefined ? Boolean(pushAlerts) : true,
+    });
+
+    res.status(201).json({ success: true, message: 'Saved search created', data: { savedSearch } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/worker/saved-searches/:id
+router.delete('/saved-searches/:id', async (req, res, next) => {
+  try {
+    const deleted = await SavedSearch.findOneAndDelete({
+      _id: req.params.id,
+      workerId: req.user._id,
+    });
+    if (!deleted) return res.status(404).json({ success: false, message: 'Saved search not found' });
+    res.json({ success: true, message: 'Saved search removed' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
