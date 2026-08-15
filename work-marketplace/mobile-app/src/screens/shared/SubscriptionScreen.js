@@ -3,8 +3,10 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, SafeAreaView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { COLORS, SHADOWS } from '../../theme';
 
 export default function SubscriptionScreen({ navigation }) {
   const { user } = useAuth();
@@ -37,7 +39,6 @@ export default function SubscriptionScreen({ navigation }) {
     if (plan.isFree) return Alert.alert('Active Plan', 'You are already on the Free tier.');
     setUpgrading(plan._id);
     try {
-      // In production, integrate Razorpay Checkout SDK here
       const { data } = await api.post('/subscriptions/subscribe', {
         planId: plan._id,
         paymentId: `pay_mock_${Date.now()}`,
@@ -77,7 +78,7 @@ export default function SubscriptionScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -89,12 +90,15 @@ export default function SubscriptionScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.container}>
         {/* HEADER */}
         <View style={styles.header}>
-          <Text style={styles.tagline}>
-            {role === 'worker' ? 'WORKER PRO SUBSCRIPTION' : 'POSTER BUSINESS SUBSCRIPTION'}
-          </Text>
-          <h1 style={styles.title}>
+          <View style={styles.badgePill}>
+            <Ionicons name="sparkles" size={12} color={COLORS.primaryLight} />
+            <Text style={styles.tagline}>
+              {role === 'worker' ? 'WORKER PRO SUBSCRIPTION' : 'POSTER BUSINESS SUBSCRIPTION'}
+            </Text>
+          </View>
+          <Text style={styles.title}>
             {role === 'worker' ? 'Earn More & Get Hired Faster' : 'Hire Top Workers on Priority'}
-          </h1>
+          </Text>
           <Text style={styles.subtitle}>
             {role === 'worker'
               ? 'Unlock unlimited applications, top search ranking, and lower platform commission fees.'
@@ -104,8 +108,11 @@ export default function SubscriptionScreen({ navigation }) {
 
         {/* CURRENT USAGE SUMMARY */}
         {currentSub && (
-          <View style={styles.usageCard}>
-            <Text style={styles.usageTitle}>Current Billing Cycle Usage</Text>
+          <View style={[styles.usageCard, SHADOWS.small]}>
+            <View style={styles.usageTitleRow}>
+              <Ionicons name="analytics-outline" size={14} color={COLORS.textSecondary} />
+              <Text style={styles.usageTitle}>Current Billing Cycle Usage</Text>
+            </View>
             <View style={styles.usageRow}>
               <Text style={styles.usageLabel}>
                 {role === 'worker' ? 'Applications Used This Month:' : 'Jobs Posted This Month:'}
@@ -140,10 +147,12 @@ export default function SubscriptionScreen({ navigation }) {
                   styles.planCard,
                   isPro && styles.planCardPro,
                   isCurrent && styles.planCardCurrent,
+                  isPro && SHADOWS.glowPrimary,
                 ]}
               >
                 {isPro && (
                   <View style={styles.popularBadge}>
+                    <Ionicons name="star" size={10} color="#FFFFFF" />
                     <Text style={styles.popularBadgeText}>RECOMMENDED</Text>
                   </View>
                 )}
@@ -161,7 +170,7 @@ export default function SubscriptionScreen({ navigation }) {
                 <View style={styles.featuresList}>
                   {plan.displayFeatures?.map((feat, idx) => (
                     <View key={idx} style={styles.featureItem}>
-                      <Text style={styles.featureCheck}>✓</Text>
+                      <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
                       <Text style={styles.featureText}>{feat}</Text>
                     </View>
                   ))}
@@ -170,20 +179,25 @@ export default function SubscriptionScreen({ navigation }) {
                 {/* ACTION BUTTON */}
                 {isCurrent ? (
                   <View style={styles.currentBtn}>
-                    <Text style={styles.currentBtnText}>✓ Current Plan</Text>
+                    <Ionicons name="checkmark" size={16} color={COLORS.textSecondary} />
+                    <Text style={styles.currentBtnText}>Current Active Plan</Text>
                   </View>
                 ) : (
                   <TouchableOpacity
                     style={[styles.upgradeBtn, isPro && styles.upgradeBtnPro]}
                     onPress={() => handleSubscribe(plan)}
                     disabled={upgrading === plan._id}
+                    activeOpacity={0.8}
                   >
                     {upgrading === plan._id ? (
-                      <ActivityIndicator color="white" />
+                      <ActivityIndicator color="#FFFFFF" />
                     ) : (
-                      <Text style={styles.upgradeBtnText}>
-                        {plan.price === 0 ? 'Switch to Free' : `Upgrade for ₹${plan.price}/mo`}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Ionicons name="flash-outline" size={16} color="#FFFFFF" />
+                        <Text style={styles.upgradeBtnText}>
+                          {plan.price === 0 ? 'Switch to Free' : `Upgrade for ₹${plan.price}/mo`}
+                        </Text>
+                      </View>
                     )}
                   </TouchableOpacity>
                 )}
@@ -204,38 +218,98 @@ export default function SubscriptionScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0f172a' },
-  container: { padding: 20, paddingBottom: 40 },
-  loadingContainer: { flex: 1, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center' },
-  header: { alignItems: 'center', marginBottom: 24, marginTop: 8 },
-  tagline: { fontSize: 12, fontWeight: '700', color: '#6366f1', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
-  title: { fontSize: 24, fontWeight: '800', color: '#f8fafc', textAlign: 'center', marginBottom: 8 },
-  subtitle: { fontSize: 14, color: '#94a3b8', textAlign: 'center', lineHeight: 20, paddingHorizontal: 10 },
-  usageCard: { backgroundColor: '#1e293b', borderRadius: 14, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#334155' },
-  usageTitle: { fontSize: 12, fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 8 },
+  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  container: { padding: 18, paddingBottom: 40 },
+  loadingContainer: { flex: 1, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' },
+
+  header: { alignItems: 'center', marginBottom: 24, marginTop: 4 },
+  badgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.3)',
+  },
+  tagline: { fontSize: 11, fontWeight: '800', color: COLORS.primaryLight, letterSpacing: 0.6 },
+  title: { fontSize: 22, fontWeight: '900', color: COLORS.textPrimary, textAlign: 'center', marginBottom: 6 },
+  subtitle: { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', lineHeight: 19, paddingHorizontal: 10 },
+
+  usageCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+  },
+  usageTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  usageTitle: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase' },
   usageRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  usageLabel: { fontSize: 14, color: '#cbd5e1' },
-  usageValue: { fontSize: 15, fontWeight: '700', color: '#6366f1' },
+  usageLabel: { fontSize: 13, color: COLORS.textSecondary },
+  usageValue: { fontSize: 15, fontWeight: '900', color: COLORS.primaryLight },
+
   plansContainer: { gap: 18 },
-  planCard: { backgroundColor: '#1e293b', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#334155', position: 'relative' },
-  planCardPro: { borderColor: '#6366f1', borderWidth: 2 },
-  planCardCurrent: { backgroundColor: '#182339' },
-  popularBadge: { position: 'absolute', top: -11, right: 20, backgroundColor: '#6366f1', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
-  popularBadgeText: { fontSize: 10, fontWeight: '800', color: 'white', letterSpacing: 0.5 },
-  planName: { fontSize: 18, fontWeight: '700', color: '#f8fafc', marginBottom: 6 },
-  priceRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 16 },
-  priceSymbol: { fontSize: 20, fontWeight: '700', color: '#f8fafc' },
-  priceAmount: { fontSize: 32, fontWeight: '800', color: '#f8fafc' },
-  priceCycle: { fontSize: 13, color: '#94a3b8', marginLeft: 4 },
-  featuresList: { gap: 10, marginBottom: 20, borderTopWidth: 1, borderTopColor: '#334155', paddingTop: 14 },
+  planCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 22,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    position: 'relative',
+  },
+  planCardPro: { borderColor: COLORS.primary, borderWidth: 2 },
+  planCardCurrent: { backgroundColor: 'rgba(99, 102, 241, 0.05)' },
+
+  popularBadge: {
+    position: 'absolute',
+    top: -11,
+    right: 20,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  popularBadgeText: { fontSize: 10, fontWeight: '900', color: '#FFFFFF', letterSpacing: 0.5 },
+
+  planName: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 4 },
+  priceRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 14 },
+  priceSymbol: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary },
+  priceAmount: { fontSize: 32, fontWeight: '900', color: COLORS.textPrimary },
+  priceCycle: { fontSize: 13, color: COLORS.textMuted, marginLeft: 4 },
+
+  featuresList: { gap: 10, marginBottom: 18, borderTopWidth: 1, borderTopColor: COLORS.surfaceBorder, paddingTop: 14 },
   featureItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  featureCheck: { fontSize: 14, color: '#22c55e', fontWeight: '800' },
-  featureText: { fontSize: 13, color: '#cbd5e1', flex: 1, lineHeight: 18 },
-  currentBtn: { backgroundColor: '#334155', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  currentBtnText: { color: '#94a3b8', fontWeight: '700', fontSize: 14 },
-  upgradeBtn: { backgroundColor: '#334155', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  upgradeBtnPro: { backgroundColor: '#6366f1' },
-  upgradeBtnText: { color: 'white', fontWeight: '700', fontSize: 15 },
-  cancelLink: { marginTop: 24, alignItems: 'center', padding: 10 },
-  cancelLinkText: { fontSize: 13, color: '#ef4444', textDecorationLine: 'underline' },
+  featureText: { fontSize: 13, color: COLORS.textSecondary, flex: 1, lineHeight: 18 },
+
+  currentBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.surfaceLight,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  currentBtnText: { color: COLORS.textSecondary, fontWeight: '700', fontSize: 14 },
+
+  upgradeBtn: {
+    backgroundColor: COLORS.surfaceLight,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upgradeBtnPro: { backgroundColor: COLORS.primary },
+  upgradeBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
+
+  cancelLink: { marginTop: 20, alignItems: 'center', padding: 10 },
+  cancelLinkText: { fontSize: 12, color: COLORS.danger, textDecorationLine: 'underline' },
 });

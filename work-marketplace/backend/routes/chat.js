@@ -42,7 +42,44 @@ router.get('/:jobId/messages', async (req, res, next) => {
       { readAt: new Date() }
     );
 
-    res.json({ success: true, data: { messages, page: parseInt(page) } });
+// ─── SEND MESSAGE ─────────────────────────────────────────────────────────────
+// POST /api/chat/:jobId/messages
+router.post('/:jobId/messages', async (req, res, next) => {
+  try {
+    const { text } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ success: false, message: 'Message text is required' });
+    }
+
+    const job = await Job.findById(req.params.jobId);
+    if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
+
+    const isParty =
+      job.posterId.equals(req.user._id) ||
+      (job.assignedWorkerId && job.assignedWorkerId.equals(req.user._id));
+
+    if (!isParty) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    const recipientId = job.posterId.equals(req.user._id) ? job.assignedWorkerId : job.posterId;
+
+    const message = await ChatMessage.create({
+      jobId: job._id,
+      senderId: req.user._id,
+      recipientId,
+      text: text.trim(),
+    });
+
+    const populated = await ChatMessage.findById(message._id)
+      .populate('senderId', 'name profilePhotoUrl');
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`job:${job._id}`).emit('chat:message', populated);
+    }
+
+    res.status(201).json({ success: true, data: { message: populated } });
   } catch (error) {
     next(error);
   }

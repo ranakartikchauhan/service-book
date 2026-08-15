@@ -3,20 +3,22 @@ import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl, Alert, SafeAreaView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import { useTranslation } from '../../i18n';
+import { COLORS, SHADOWS } from '../../theme';
 
 const CATEGORY_ICONS = {
-  newMatchingJob: '💼',
-  applicationUpdates: '📋',
-  messages: '💬',
-  paymentUpdates: '💰',
-  jobReminders: '⏰',
-  noApplicantsNudge: '💡',
-  subscriptionBilling: '💳',
-  marketing: '🎁',
-  safety: '🚨',
-  system: '🔔',
+  newMatchingJob: { icon: 'briefcase', color: COLORS.primaryLight },
+  applicationUpdates: { icon: 'clipboard', color: COLORS.accent },
+  messages: { icon: 'chatbubbles', color: '#A78BFA' },
+  paymentUpdates: { icon: 'wallet', color: COLORS.success },
+  jobReminders: { icon: 'alarm', color: COLORS.warning },
+  noApplicantsNudge: { icon: 'bulb', color: '#FBBF24' },
+  subscriptionBilling: { icon: 'card', color: COLORS.accent },
+  marketing: { icon: 'gift', color: '#F472B6' },
+  safety: { icon: 'shield-alert', color: COLORS.danger },
+  system: { icon: 'notifications', color: COLORS.textSecondary },
 };
 
 export default function NotificationCenterScreen({ navigation }) {
@@ -71,16 +73,16 @@ export default function NotificationCenterScreen({ navigation }) {
 
   const renderNotification = ({ item }) => {
     const isUnread = !item.readAt;
-    const icon = CATEGORY_ICONS[item.category] || '🔔';
+    const catConfig = CATEGORY_ICONS[item.category] || CATEGORY_ICONS.system;
 
     return (
       <TouchableOpacity
-        style={[styles.notifCard, isUnread && styles.notifCardUnread]}
+        style={[styles.notifCard, isUnread && styles.notifCardUnread, SHADOWS.small]}
         onPress={() => handleMarkAsRead(item)}
         activeOpacity={0.8}
       >
-        <View style={styles.iconContainer}>
-          <Text style={styles.categoryIcon}>{icon}</Text>
+        <View style={[styles.iconContainer, { backgroundColor: `${catConfig.color}15` }]}>
+          <Ionicons name={catConfig.icon} size={20} color={catConfig.color} />
         </View>
 
         <View style={{ flex: 1 }}>
@@ -91,10 +93,13 @@ export default function NotificationCenterScreen({ navigation }) {
             {isUnread && <View style={styles.unreadDot} />}
           </View>
           <Text style={styles.body}>{item.body}</Text>
-          <Text style={styles.timeText}>
-            {new Date(item.createdAt).toLocaleDateString()} at{' '}
-            {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Text>
+          <View style={styles.timeRow}>
+            <Ionicons name="time-outline" size={11} color={COLORS.textMuted} />
+            <Text style={styles.timeText}>
+              {new Date(item.createdAt).toLocaleDateString()} at{' '}
+              {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -103,7 +108,7 @@ export default function NotificationCenterScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -114,7 +119,7 @@ export default function NotificationCenterScreen({ navigation }) {
         {/* TOP BAR */}
         <View style={styles.topBar}>
           <Text style={styles.headerTitle}>{t('notifications_title')}</Text>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             {unreadCount > 0 && (
               <TouchableOpacity style={styles.markAllBtn} onPress={handleMarkAllRead}>
                 <Text style={styles.markAllBtnText}>{t('mark_all_read')}</Text>
@@ -124,7 +129,7 @@ export default function NotificationCenterScreen({ navigation }) {
               style={styles.settingsBtn}
               onPress={() => navigation.navigate('NotificationPreferences')}
             >
-              <Text style={styles.settingsBtnText}>⚙️</Text>
+              <Ionicons name="settings-outline" size={20} color={COLORS.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -134,11 +139,13 @@ export default function NotificationCenterScreen({ navigation }) {
           data={notifications}
           keyExtractor={(n) => n._id}
           renderItem={renderNotification}
-          contentContainerStyle={notifications.length === 0 ? styles.emptyContainer : { padding: 16, gap: 10 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
+          contentContainerStyle={notifications.length === 0 ? styles.emptyContainer : { padding: 16, gap: 12 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>📭</Text>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="mail-open-outline" size={38} color={COLORS.textMuted} />
+              </View>
               <Text style={styles.emptyTitle}>{t('no_notifications')}</Text>
               <Text style={styles.emptySubtitle}>You're all caught up with your latest job alerts.</Text>
             </View>
@@ -150,56 +157,54 @@ export default function NotificationCenterScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0f172a' },
+  safeArea: { flex: 1, backgroundColor: COLORS.background },
   container: { flex: 1 },
-  center: { flex: 1, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e293b',
+    borderBottomColor: COLORS.surfaceBorder,
   },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#f8fafc' },
-  markAllBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: '#334155' },
-  markAllBtnText: { fontSize: 12, color: '#a5b4fc', fontWeight: '700' },
+  headerTitle: { fontSize: 20, fontWeight: '900', color: COLORS.textPrimary },
+  markAllBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: COLORS.surfaceLight },
+  markAllBtnText: { fontSize: 12, color: COLORS.primaryLight, fontWeight: '700' },
   settingsBtn: { padding: 6 },
-  settingsBtnText: { fontSize: 18 },
 
   notifCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
     padding: 14,
     flexDirection: 'row',
     gap: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: COLORS.surfaceBorder,
   },
   notifCardUnread: {
-    backgroundColor: '#1e2942',
-    borderColor: '#6366f1',
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    borderColor: COLORS.primary,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#334155',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  categoryIcon: { fontSize: 18 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  title: { fontSize: 14, fontWeight: '600', color: '#cbd5e1', flex: 1 },
-  titleUnread: { color: '#f8fafc', fontWeight: '800' },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#6366f1', marginLeft: 8 },
-  body: { fontSize: 13, color: '#94a3b8', lineHeight: 18, marginBottom: 6 },
-  timeText: { fontSize: 11, color: '#64748b' },
+  title: { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary, flex: 1 },
+  titleUnread: { color: COLORS.textPrimary, fontWeight: '800' },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary, marginLeft: 8 },
+  body: { fontSize: 13, color: COLORS.textMuted, lineHeight: 18, marginBottom: 6 },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  timeText: { fontSize: 11, color: COLORS.textMuted },
 
   emptyContainer: { flex: 1 },
-  emptyState: { alignItems: 'center', paddingTop: 100 },
-  emptyIcon: { fontSize: 56 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#f1f5f9', marginTop: 16 },
-  emptySubtitle: { fontSize: 13, color: '#64748b', marginTop: 6, textAlign: 'center' },
+  emptyState: { alignItems: 'center', paddingTop: 100, paddingHorizontal: 24 },
+  emptyIconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  emptyTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  emptySubtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 6, textAlign: 'center' },
 });

@@ -4,9 +4,11 @@ import {
   ActivityIndicator, Alert, SafeAreaView, Image,
 } from 'react-native';
 import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import JobTimeline from '../../components/JobTimeline';
 import { useTranslation } from '../../i18n';
+import { COLORS, SHADOWS } from '../../theme';
 
 export default function ActiveJobScreen({ navigation, route }) {
   const { t } = useTranslation();
@@ -34,7 +36,7 @@ export default function ActiveJobScreen({ navigation, route }) {
 
   useEffect(() => {
     fetchJobDetails();
-    const interval = setInterval(fetchJobDetails, 15000); // refresh every 15s
+    const interval = setInterval(fetchJobDetails, 15000);
     return () => clearInterval(interval);
   }, [jobId]);
 
@@ -101,7 +103,7 @@ export default function ActiveJobScreen({ navigation, route }) {
   if (loading || !job) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -112,10 +114,16 @@ export default function ActiveJobScreen({ navigation, route }) {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         {/* TOP STATUS BAR */}
-        <View style={styles.headerBox}>
+        <View style={[styles.headerBox, SHADOWS.small]}>
           <Text style={styles.jobTitle}>{job.title}</Text>
-          <Text style={styles.jobAddress}>📍 {job.location?.addressText || 'Job Location'}</Text>
-          <Text style={styles.jobBudget}>₹{job.budgetAmount} · {job.budgetType} budget</Text>
+          <View style={styles.addressRow}>
+            <Ionicons name="location-outline" size={14} color={COLORS.textMuted} />
+            <Text style={styles.jobAddress}>{job.location?.addressText || 'Job Location'}</Text>
+          </View>
+          <View style={styles.budgetRow}>
+            <Ionicons name="cash-outline" size={15} color={COLORS.primaryLight} />
+            <Text style={styles.jobBudget}>₹{job.budgetAmount} · {job.budgetType} budget</Text>
+          </View>
         </View>
 
         {/* JOB STATUS TIMELINE COMPONENT */}
@@ -123,7 +131,7 @@ export default function ActiveJobScreen({ navigation, route }) {
 
         {/* ASSIGNED WORKER CARD */}
         {worker && (
-          <View style={styles.workerCard}>
+          <View style={[styles.workerCard, SHADOWS.small]}>
             <View style={styles.workerAvatar}>
               {worker.profilePhotoUrl ? (
                 <Image source={{ uri: worker.profilePhotoUrl }} style={styles.avatarImg} />
@@ -134,22 +142,28 @@ export default function ActiveJobScreen({ navigation, route }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.workerName}>{worker.name}</Text>
               <Text style={styles.workerPhone}>{worker.phone}</Text>
-              <Text style={styles.verifiedBadge}>✓ ID Verified Worker</Text>
+              <View style={styles.badgeRow}>
+                <Ionicons name="checkmark-circle" size={13} color={COLORS.success} />
+                <Text style={styles.verifiedBadge}>ID Verified Worker</Text>
+              </View>
             </View>
             <TouchableOpacity
               style={styles.chatBtn}
               onPress={() => navigation.navigate('Chat', { recipientId: worker._id, name: worker.name })}
+              activeOpacity={0.8}
             >
-              <Text style={styles.chatBtnText}>💬 Chat</Text>
+              <Ionicons name="chatbubbles-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.chatBtnText}>Chat</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* LIVE WORKER TRACKING (If Active) */}
         {['assigned', 'in_progress'].includes(job.status) && (
-          <View style={styles.liveTrackingCard}>
+          <View style={[styles.liveTrackingCard, SHADOWS.small]}>
             <View style={styles.liveHeader}>
               <View style={styles.pulseDot} />
+              <Ionicons name="navigate-circle-outline" size={18} color="#86EFAC" />
               <Text style={styles.liveTitle}>{t('live_location_sharing')}</Text>
             </View>
             <Text style={styles.liveSub}>
@@ -157,6 +171,7 @@ export default function ActiveJobScreen({ navigation, route }) {
             </Text>
             {liveLocation && (
               <View style={styles.coordsBox}>
+                <Ionicons name="compass-outline" size={14} color="#6EE7B7" />
                 <Text style={styles.coordsTxt}>
                   GPS: {liveLocation.coordinates?.[1]?.toFixed(4)}° N, {liveLocation.coordinates?.[0]?.toFixed(4)}° E
                 </Text>
@@ -168,14 +183,18 @@ export default function ActiveJobScreen({ navigation, route }) {
         {/* ACTIONS */}
         {job.status === 'in_progress' && (
           <TouchableOpacity
-            style={[styles.completeBtn, completing && styles.btnDisabled]}
+            style={[styles.completeBtn, completing && styles.btnDisabled, SHADOWS.glowPrimary]}
             onPress={handleMarkComplete}
             disabled={completing}
+            activeOpacity={0.8}
           >
             {completing ? (
-              <ActivityIndicator color="white" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.completeBtnText}>✅ Confirm Completion & Release Payment</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="checkmark-done-circle-outline" size={20} color="#FFFFFF" />
+                <Text style={styles.completeBtnText}>Confirm Completion & Release Payment</Text>
+              </View>
             )}
           </TouchableOpacity>
         )}
@@ -183,11 +202,12 @@ export default function ActiveJobScreen({ navigation, route }) {
         {/* EMERGENCY SOS BUTTON */}
         {['assigned', 'in_progress'].includes(job.status) && (
           <TouchableOpacity
-            style={[styles.sosBtn, triggeringSos && styles.btnDisabled]}
+            style={[styles.sosBtn, triggeringSos && styles.btnDisabled, SHADOWS.medium]}
             onPress={handleTriggerSOS}
             disabled={triggeringSos}
             activeOpacity={0.8}
           >
+            <Ionicons name="warning-outline" size={22} color="#FFFFFF" />
             <Text style={styles.sosBtnText}>{t('sos_button')}</Text>
           </TouchableOpacity>
         )}
@@ -197,66 +217,99 @@ export default function ActiveJobScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0f172a' },
-  container: { padding: 16, paddingBottom: 40 },
-  center: { flex: 1, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center' },
-  headerBox: { backgroundColor: '#1e293b', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#334155', marginBottom: 12 },
-  jobTitle: { fontSize: 18, fontWeight: '800', color: '#f8fafc', marginBottom: 6 },
-  jobAddress: { fontSize: 13, color: '#94a3b8', marginBottom: 4 },
-  jobBudget: { fontSize: 14, fontWeight: '700', color: '#6366f1' },
+  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  container: { padding: 18, paddingBottom: 40 },
+  center: { flex: 1, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' },
+
+  headerBox: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    marginBottom: 8,
+  },
+  jobTitle: { fontSize: 19, fontWeight: '900', color: COLORS.textPrimary, marginBottom: 6 },
+  addressRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
+  jobAddress: { fontSize: 13, color: COLORS.textMuted },
+  budgetRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  jobBudget: { fontSize: 14, fontWeight: '800', color: COLORS.primaryLight },
 
   workerCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: COLORS.surfaceBorder,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     marginVertical: 10,
   },
-  workerAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#334155', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  workerAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.surfaceLight, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   avatarImg: { width: '100%', height: '100%' },
-  avatarTxt: { fontSize: 20, fontWeight: '800', color: 'white' },
-  workerName: { fontSize: 15, fontWeight: '700', color: '#f8fafc' },
-  workerPhone: { fontSize: 12, color: '#94a3b8' },
-  verifiedBadge: { fontSize: 11, color: '#4ade80', fontWeight: '700', marginTop: 2 },
-  chatBtn: { backgroundColor: '#312e81', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
-  chatBtnText: { color: '#a5b4fc', fontWeight: '700', fontSize: 13 },
+  avatarTxt: { fontSize: 20, fontWeight: '900', color: COLORS.primaryLight },
+  workerName: { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary },
+  workerPhone: { fontSize: 12, color: COLORS.textMuted, marginTop: 1 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
+  verifiedBadge: { fontSize: 11, color: COLORS.success, fontWeight: '700' },
+  chatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+  chatBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 12 },
 
   liveTrackingCard: {
-    backgroundColor: '#0f291e',
-    borderRadius: 16,
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#166534',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
     marginVertical: 10,
   },
-  liveHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#22c55e' },
-  liveTitle: { fontSize: 14, fontWeight: '700', color: '#86efac' },
-  liveSub: { fontSize: 12, color: '#a7f3d0', lineHeight: 16 },
-  coordsBox: { marginTop: 8, backgroundColor: 'rgba(0,0,0,0.2)', padding: 6, borderRadius: 6 },
-  coordsTxt: { fontSize: 11, color: '#6ee7b7', fontFamily: 'monospace' },
+  liveHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.success },
+  liveTitle: { fontSize: 14, fontWeight: '800', color: '#86EFAC' },
+  liveSub: { fontSize: 12, color: '#A7F3D0', lineHeight: 16 },
+  coordsBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  coordsTxt: { fontSize: 11, color: '#6EE7B7', fontFamily: 'monospace' },
 
-  completeBtn: { backgroundColor: '#22c55e', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 14 },
-  completeBtnText: { color: 'white', fontWeight: '800', fontSize: 15 },
+  completeBtn: {
+    backgroundColor: COLORS.success,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+  },
+  completeBtnText: { color: '#FFFFFF', fontWeight: '900', fontSize: 14 },
   btnDisabled: { opacity: 0.6 },
 
   sosBtn: {
-    backgroundColor: '#ef4444',
-    borderRadius: 12,
-    paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.danger,
+    borderRadius: 14,
+    paddingVertical: 16,
     marginTop: 18,
     borderWidth: 1,
-    borderColor: '#f87171',
-    shadowColor: '#ef4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    borderColor: '#F87171',
   },
-  sosBtnText: { color: 'white', fontWeight: '900', fontSize: 15, letterSpacing: 0.5 },
+  sosBtnText: { color: '#FFFFFF', fontWeight: '900', fontSize: 15, letterSpacing: 0.5 },
 });

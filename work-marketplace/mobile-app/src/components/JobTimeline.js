@@ -1,13 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '../i18n';
+import { COLORS } from '../theme';
 
 const STAGES = [
-  { key: 'open', labelKey: 'stage_posted', icon: '📝' },
-  { key: 'assigned', labelKey: 'stage_assigned', icon: '🤝' },
-  { key: 'in_progress', labelKey: 'stage_in_progress', icon: '⚡' },
-  { key: 'completed', labelKey: 'stage_completed', icon: '✅' },
-  { key: 'paid', labelKey: 'stage_paid', icon: '💰' },
+  { key: 'open', labelKey: 'stage_posted', icon: 'document-text-outline' },
+  { key: 'assigned', labelKey: 'stage_assigned', icon: 'person-add-outline' },
+  { key: 'in_progress', labelKey: 'stage_in_progress', icon: 'flash-outline' },
+  { key: 'completed', labelKey: 'stage_completed', icon: 'checkmark-circle-outline' },
+  { key: 'paid', labelKey: 'stage_paid', icon: 'cash-outline' },
 ];
 
 const STAGE_ORDER = {
@@ -26,7 +28,8 @@ export default function JobTimeline({ currentStatus = 'open', statusHistory = []
   if (currentStatus === 'cancelled') {
     return (
       <View style={styles.cancelledBox}>
-        <Text style={styles.cancelledText}>🚫 This job was cancelled.</Text>
+        <Ionicons name="close-circle-outline" size={22} color={COLORS.danger} />
+        <Text style={styles.cancelledText}>This job was cancelled.</Text>
       </View>
     );
   }
@@ -40,7 +43,11 @@ export default function JobTimeline({ currentStatus = 'open', statusHistory = []
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerTitle}>Job Status Lifecycle</Text>
+      <View style={styles.headerRow}>
+        <Ionicons name="git-network-outline" size={16} color={COLORS.primaryLight} />
+        <Text style={styles.headerTitle}>Job Status Lifecycle</Text>
+      </View>
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {STAGES.map((stage, idx) => {
           const isPassed = idx < currentIdx;
@@ -58,9 +65,11 @@ export default function JobTimeline({ currentStatus = 'open', statusHistory = []
                     isCurrent && styles.nodeCurrent,
                   ]}
                 >
-                  <Text style={styles.nodeIcon}>
-                    {isPassed ? '✓' : stage.icon}
-                  </Text>
+                  <Ionicons
+                    name={isPassed ? 'checkmark' : stage.icon}
+                    size={16}
+                    color={isPassed ? '#FFFFFF' : isCurrent ? '#FFFFFF' : COLORS.textMuted}
+                  />
                 </View>
 
                 {/* Connecting line */}
@@ -94,20 +103,25 @@ export default function JobTimeline({ currentStatus = 'open', statusHistory = []
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: COLORS.surfaceBorder,
     marginVertical: 12,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 16,
   },
   headerTitle: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#94a3b8',
+    fontWeight: '800',
+    color: COLORS.textSecondary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 14,
+    letterSpacing: 0.6,
   },
   scroll: {
     flexDirection: 'row',
@@ -116,7 +130,7 @@ const styles = StyleSheet.create({
   },
   stageWrapper: {
     alignItems: 'center',
-    width: 90,
+    width: 86,
   },
   stageRow: {
     flexDirection: 'row',
@@ -125,71 +139,74 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   node: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#334155',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
     borderWidth: 2,
-    borderColor: '#475569',
+    borderColor: COLORS.surfaceBorderLight,
   },
   nodePassed: {
-    backgroundColor: '#166534',
-    borderColor: '#22c55e',
+    backgroundColor: COLORS.success,
+    borderColor: COLORS.successLight,
   },
   nodeCurrent: {
-    backgroundColor: '#312e81',
-    borderColor: '#6366f1',
-    transform: [{ scale: 1.15 }],
-  },
-  nodeIcon: {
-    fontSize: 14,
-    color: 'white',
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primaryLight,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 6,
   },
   line: {
     position: 'absolute',
     left: '50%',
     right: '-50%',
     height: 3,
-    backgroundColor: '#334155',
+    backgroundColor: COLORS.surfaceBorderLight,
     zIndex: 1,
   },
   linePassed: {
-    backgroundColor: '#22c55e',
+    backgroundColor: COLORS.success,
   },
   label: {
     fontSize: 11,
-    color: '#64748b',
+    color: COLORS.textMuted,
     fontWeight: '600',
     marginTop: 8,
     textAlign: 'center',
   },
   labelPassed: {
-    color: '#94a3b8',
+    color: COLORS.textSecondary,
   },
   labelCurrent: {
-    color: '#a5b4fc',
+    color: COLORS.primaryLight,
     fontWeight: '800',
   },
   timestamp: {
     fontSize: 9,
-    color: '#64748b',
+    color: COLORS.textMuted,
     marginTop: 2,
   },
   cancelledBox: {
-    backgroundColor: '#3b1c24',
-    borderRadius: 12,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#ef4444',
+    borderColor: COLORS.danger,
     marginVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   cancelledText: {
-    color: '#fca5a5',
+    color: '#FCA5A5',
     fontSize: 13,
     fontWeight: '700',
-    textAlign: 'center',
   },
 });

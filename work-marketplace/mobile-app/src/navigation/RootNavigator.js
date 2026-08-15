@@ -2,9 +2,11 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { Text, View, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { LanguageProvider } from '../i18n';
+import { COLORS } from '../theme';
 
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -40,9 +42,11 @@ function HeaderNotificationBell({ navigation }) {
   return (
     <TouchableOpacity
       onPress={() => navigation.navigate('NotificationCenter')}
-      style={{ marginRight: 16, padding: 4 }}
+      style={styles.bellBtn}
+      activeOpacity={0.7}
     >
-      <Text style={{ fontSize: 20 }}>🔔</Text>
+      <Ionicons name="notifications-outline" size={22} color={COLORS.textPrimary} />
+      <View style={styles.bellBadge} />
     </TouchableOpacity>
   );
 }
@@ -62,33 +66,55 @@ function WorkerTabs({ navigation }) {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarStyle: { backgroundColor: '#1e293b', borderTopColor: '#334155' },
-        tabBarActiveTintColor: '#6366f1',
-        tabBarInactiveTintColor: '#64748b',
-        headerStyle: { backgroundColor: '#1e293b' },
-        headerTintColor: '#f1f5f9',
+        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: COLORS.primaryLight,
+        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarLabelStyle: styles.tabLabel,
+        headerStyle: styles.header,
+        headerTitleStyle: styles.headerTitle,
+        headerTintColor: COLORS.textPrimary,
         headerRight: () => <HeaderNotificationBell navigation={navigation} />,
       }}
     >
       <Tab.Screen
         name="Jobs"
         component={WorkerJobBrowseScreen}
-        options={{ tabBarIcon: () => <Text style={{ fontSize: 20 }}>💼</Text>, tabBarLabel: 'Find Work' }}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'briefcase' : 'briefcase-outline'} size={22} color={color} />
+          ),
+          tabBarLabel: 'Find Work',
+        }}
       />
       <Tab.Screen
         name="MyApplications"
         component={WorkerMyApplicationsScreen}
-        options={{ tabBarIcon: () => <Text style={{ fontSize: 20 }}>📋</Text>, tabBarLabel: 'Applied' }}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'clipboard' : 'clipboard-outline'} size={22} color={color} />
+          ),
+          tabBarLabel: 'Applied',
+        }}
       />
       <Tab.Screen
         name="Earnings"
         component={WorkerEarningsScreen}
-        options={{ tabBarIcon: () => <Text style={{ fontSize: 20 }}>💰</Text>, tabBarLabel: 'Earnings' }}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'wallet' : 'wallet-outline'} size={22} color={color} />
+          ),
+          tabBarLabel: 'Earnings',
+        }}
       />
       <Tab.Screen
         name="Profile"
         component={WorkerProfileScreen}
-        options={{ tabBarIcon: () => <Text style={{ fontSize: 20 }}>👤</Text>, tabBarLabel: 'Profile' }}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={color} />
+          ),
+          tabBarLabel: 'Profile',
+        }}
       />
     </Tab.Navigator>
   );
@@ -99,28 +125,45 @@ function PosterTabs({ navigation }) {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarStyle: { backgroundColor: '#1e293b', borderTopColor: '#334155' },
-        tabBarActiveTintColor: '#6366f1',
-        tabBarInactiveTintColor: '#64748b',
-        headerStyle: { backgroundColor: '#1e293b' },
-        headerTintColor: '#f1f5f9',
+        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: COLORS.primaryLight,
+        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarLabelStyle: styles.tabLabel,
+        headerStyle: styles.header,
+        headerTitleStyle: styles.headerTitle,
+        headerTintColor: COLORS.textPrimary,
         headerRight: () => <HeaderNotificationBell navigation={navigation} />,
       }}
     >
       <Tab.Screen
         name="MyJobs"
         component={PosterMyJobsScreen}
-        options={{ tabBarIcon: () => <Text style={{ fontSize: 20 }}>📋</Text>, tabBarLabel: 'My Jobs' }}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'reader' : 'reader-outline'} size={22} color={color} />
+          ),
+          tabBarLabel: 'My Jobs',
+        }}
       />
       <Tab.Screen
         name="PostJob"
         component={PosterPostJobScreen}
-        options={{ tabBarIcon: () => <Text style={{ fontSize: 20 }}>➕</Text>, tabBarLabel: 'Post Job' }}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} size={24} color={COLORS.primary} />
+          ),
+          tabBarLabel: 'Post Job',
+        }}
       />
       <Tab.Screen
         name="PosterProfile"
         component={SettingsScreen}
-        options={{ tabBarIcon: () => <Text style={{ fontSize: 20 }}>⚙️</Text>, tabBarLabel: 'Settings' }}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'settings' : 'settings-outline'} size={22} color={color} />
+          ),
+          tabBarLabel: 'Settings',
+        }}
       />
     </Tab.Navigator>
   );
@@ -133,8 +176,9 @@ function AppNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: '#1e293b' },
-        headerTintColor: '#f1f5f9',
+        headerStyle: styles.header,
+        headerTitleStyle: styles.headerTitle,
+        headerTintColor: COLORS.textPrimary,
       }}
     >
       {user?.currentMode === 'worker' ? (
@@ -164,8 +208,8 @@ export default function RootNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}>
-        <ActivityIndicator size="large" color="#6366f1" />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -178,3 +222,44 @@ export default function RootNavigator() {
     </LanguageProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: COLORS.surface,
+    borderTopColor: COLORS.surfaceBorder,
+    borderTopWidth: 1,
+    height: 64,
+    paddingBottom: 8,
+    paddingTop: 6,
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  header: {
+    backgroundColor: COLORS.surface,
+    borderBottomColor: COLORS.surfaceBorder,
+    borderBottomWidth: 1,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  bellBtn: {
+    marginRight: 16,
+    padding: 6,
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primary,
+  },
+});

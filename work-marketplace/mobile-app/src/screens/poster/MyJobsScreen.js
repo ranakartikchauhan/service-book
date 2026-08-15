@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, RefreshControl
+  ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
+import { COLORS, SHADOWS } from '../../theme';
 
 const STATUS_BADGE = {
-  open: { bg: 'rgba(34,197,94,0.15)', text: '#4ade80', label: 'OPEN' },
-  assigned: { bg: 'rgba(245,158,11,0.15)', text: '#fbbf24', label: 'ASSIGNED' },
-  in_progress: { bg: 'rgba(99,102,241,0.15)', text: '#818cf8', label: 'IN PROGRESS' },
-  completed: { bg: 'rgba(59,130,246,0.15)', text: '#60a5fa', label: 'COMPLETED' },
-  cancelled: { bg: 'rgba(100,116,139,0.15)', text: '#94a3b8', label: 'CANCELLED' },
+  open: { color: COLORS.success, label: 'OPEN' },
+  assigned: { color: COLORS.warning, label: 'ASSIGNED' },
+  in_progress: { color: COLORS.primaryLight, label: 'IN PROGRESS' },
+  completed: { color: COLORS.accent, label: 'COMPLETED' },
+  cancelled: { color: COLORS.textMuted, label: 'CANCELLED' },
 };
 
 export default function MyJobsScreen({ navigation }) {
@@ -41,25 +43,50 @@ export default function MyJobsScreen({ navigation }) {
 
   const renderJob = ({ item }) => {
     const badge = STATUS_BADGE[item.status] || STATUS_BADGE.open;
+    const isActiveSession = ['assigned', 'in_progress'].includes(item.status);
+
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, SHADOWS.small]}>
         <View style={styles.cardHeader}>
           <Text style={styles.jobTitle} numberOfLines={1}>{item.title}</Text>
-          <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-            <Text style={[styles.badgeText, { color: badge.text }]}>{badge.label}</Text>
+          <View style={[styles.badge, { backgroundColor: `${badge.color}15`, borderColor: badge.color }]}>
+            <Text style={[styles.badgeText, { color: badge.color }]}>{badge.label}</Text>
           </View>
         </View>
 
-        <Text style={styles.jobMeta}>💰 ₹{item.budgetAmount} · {item.category?.name || 'General'}</Text>
+        <View style={styles.metaRow}>
+          <View style={styles.metaCol}>
+            <Ionicons name="cash-outline" size={13} color={COLORS.primaryLight} />
+            <Text style={styles.jobMeta}>₹{item.budgetAmount} ({item.budgetType})</Text>
+          </View>
+          <View style={styles.metaCol}>
+            <Ionicons name="pricetag-outline" size={13} color={COLORS.textMuted} />
+            <Text style={styles.jobMeta}>{item.category?.name || 'General'}</Text>
+          </View>
+        </View>
+
         <Text style={styles.jobDesc} numberOfLines={2}>{item.description}</Text>
 
         <View style={styles.cardFooter}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('PosterApplicants', { jobId: item._id, jobTitle: item.title })}
-          >
-            <Text style={styles.actionBtnText}>View Applicants →</Text>
-          </TouchableOpacity>
+          {isActiveSession ? (
+            <TouchableOpacity
+              style={styles.activeSessionBtn}
+              onPress={() => navigation.navigate('PosterActiveJob', { jobId: item._id })}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="flash-outline" size={14} color="#FFFFFF" />
+              <Text style={styles.activeSessionTxt}>Open Active Job & Tracking</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => navigation.navigate('PosterApplicants', { jobId: item._id, jobTitle: item.title })}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.actionBtnText}>View Applicants</Text>
+              <Ionicons name="arrow-forward" size={14} color={COLORS.primaryLight} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -68,7 +95,7 @@ export default function MyJobsScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -79,14 +106,20 @@ export default function MyJobsScreen({ navigation }) {
         data={jobs}
         keyExtractor={(j) => j._id}
         renderItem={renderJob}
-        contentContainerStyle={jobs.length === 0 ? styles.emptyContainer : { padding: 16, gap: 12 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
+        contentContainerStyle={jobs.length === 0 ? styles.emptyContainer : { padding: 16, gap: 14 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📋</Text>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons name="reader-outline" size={36} color={COLORS.textMuted} />
+            </View>
             <Text style={styles.emptyTitle}>No jobs posted yet</Text>
-            <Text style={styles.emptySubtitle}>Tap the '+' tab below to post your first job</Text>
-            <TouchableOpacity style={styles.postBtn} onPress={() => navigation.navigate('PostJob')}>
+            <Text style={styles.emptySubtitle}>Post your cleaning, repair, or household task in under 2 minutes.</Text>
+            <TouchableOpacity
+              style={[styles.postBtn, SHADOWS.glowPrimary]}
+              onPress={() => navigation.navigate('PostJob')}
+            >
+              <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
               <Text style={styles.postBtnText}>Post a Job Now</Text>
             </TouchableOpacity>
           </View>
@@ -97,23 +130,48 @@ export default function MyJobsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f172a' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' },
-  card: { backgroundColor: '#1e293b', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#334155' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  jobTitle: { fontSize: 16, fontWeight: '700', color: '#f1f5f9', flex: 1, marginRight: 8 },
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  badgeText: { fontSize: 11, fontWeight: '700' },
-  jobMeta: { fontSize: 13, color: '#a5b4fc', fontWeight: '600', marginBottom: 8 },
-  jobDesc: { fontSize: 14, color: '#94a3b8', lineHeight: 20, marginBottom: 14 },
-  cardFooter: { borderTopWidth: 1, borderTopColor: '#334155', paddingTop: 10, flexDirection: 'row', justifyContent: 'flex-end' },
-  actionBtn: { paddingVertical: 6, paddingHorizontal: 12 },
-  actionBtnText: { color: '#6366f1', fontSize: 14, fontWeight: '700' },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
+  card: { backgroundColor: COLORS.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: COLORS.surfaceBorder },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  jobTitle: { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary, flex: 1, marginRight: 8 },
+  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
+  badgeText: { fontSize: 10, fontWeight: '800' },
+
+  metaRow: { flexDirection: 'row', gap: 14, marginBottom: 8 },
+  metaCol: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  jobMeta: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600' },
+
+  jobDesc: { fontSize: 13, color: COLORS.textMuted, lineHeight: 18, marginBottom: 12 },
+  cardFooter: { borderTopWidth: 1, borderTopColor: COLORS.surfaceBorder, paddingTop: 10, flexDirection: 'row', justifyContent: 'flex-end' },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: 8 },
+  actionBtnText: { color: COLORS.primaryLight, fontSize: 13, fontWeight: '800' },
+
+  activeSessionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  activeSessionTxt: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
+
   emptyContainer: { flex: 1 },
-  emptyState: { alignItems: 'center', paddingTop: 80 },
-  emptyIcon: { fontSize: 56 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#f1f5f9', marginTop: 16 },
-  emptySubtitle: { fontSize: 14, color: '#64748b', marginTop: 8, textAlign: 'center' },
-  postBtn: { backgroundColor: '#6366f1', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10, marginTop: 20 },
-  postBtnText: { color: 'white', fontWeight: '700', fontSize: 14 },
+  emptyState: { alignItems: 'center', paddingTop: 90, paddingHorizontal: 24 },
+  emptyIconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  emptyTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  emptySubtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 4, textAlign: 'center' },
+  postBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 20,
+  },
+  postBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
 });

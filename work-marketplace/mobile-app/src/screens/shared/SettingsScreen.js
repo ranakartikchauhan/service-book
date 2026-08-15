@@ -3,8 +3,10 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, Alert, ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n';
+import { COLORS, SHADOWS } from '../../theme';
 
 export default function SettingsScreen({ navigation }) {
   const { user, logout, switchMode } = useAuth();
@@ -45,128 +47,168 @@ export default function SettingsScreen({ navigation }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
-      {/* PROFILE HEADER */}
-      <View style={styles.profileHeader}>
+      {/* PROFILE HERO HEADER */}
+      <View style={[styles.profileHeader, SHADOWS.medium]}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{user?.name?.[0] || 'U'}</Text>
         </View>
         <Text style={styles.userName}>{user?.name}</Text>
         <Text style={styles.userPhone}>{user?.phone}</Text>
         <View style={styles.modeBadge}>
+          <Ionicons name="sparkles" size={12} color={COLORS.primaryLight} />
           <Text style={styles.modeBadgeText}>
-            CURRENT MODE: {user?.currentMode?.toUpperCase()}
+            {user?.currentMode?.toUpperCase()} MODE
           </Text>
         </View>
       </View>
 
-      {/* ACCOUNT & PREFERENCES */}
-      <View style={styles.card}>
+      {/* ACCOUNT & SERVICES */}
+      <View style={[styles.card, SHADOWS.small]}>
         <Text style={styles.sectionTitle}>Account & Services</Text>
 
         <TouchableOpacity
           style={styles.actionRow}
           onPress={handleModeSwitch}
           disabled={switching}
+          activeOpacity={0.7}
         >
-          <View>
+          <View style={styles.iconCircle}>
+            <Ionicons name="swap-horizontal" size={20} color={COLORS.primaryLight} />
+          </View>
+          <View style={{ flex: 1, marginHorizontal: 12 }}>
             <Text style={styles.actionTitle}>
               Switch to {user?.currentMode === 'worker' ? 'Poster' : 'Worker'} Mode
             </Text>
             <Text style={styles.actionSub}>
               {user?.currentMode === 'worker'
-                ? 'Switch to posting jobs and hiring workers'
-                : 'Switch to finding and applying for jobs'}
+                ? 'Post jobs and hire trusted workers'
+                : 'Find and apply for nearby service jobs'}
             </Text>
           </View>
           {switching ? (
-            <ActivityIndicator color="#6366f1" />
+            <ActivityIndicator color={COLORS.primary} />
           ) : (
-            <Text style={styles.actionArrow}>⇄</Text>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
           )}
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.actionRow}
           onPress={() => navigation.navigate('Subscription')}
+          activeOpacity={0.7}
         >
-          <View>
-            <Text style={styles.actionTitle}>💳 Subscriptions & Plans</Text>
+          <View style={styles.iconCircle}>
+            <Ionicons name="card-outline" size={20} color={COLORS.accent} />
+          </View>
+          <View style={{ flex: 1, marginHorizontal: 12 }}>
+            <Text style={styles.actionTitle}>Subscriptions & Pricing</Text>
             <Text style={styles.actionSub}>
               {user?.currentMode === 'worker'
-                ? 'Upgrade to Worker Pro for unlimited applications & boost'
-                : 'Upgrade to Poster Business for unlimited posts & priority'}
+                ? 'Upgrade to Worker Pro for boost & unlimited applications'
+                : 'Upgrade to Poster Business for priority matching'}
             </Text>
           </View>
-          <Text style={styles.actionArrow}>→</Text>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.actionRow}
           onPress={() => navigation.navigate('NotificationPreferences')}
+          activeOpacity={0.7}
         >
-          <View>
-            <Text style={styles.actionTitle}>🔔 {t('notification_preferences')}</Text>
+          <View style={styles.iconCircle}>
+            <Ionicons name="notifications-outline" size={20} color={COLORS.warning} />
+          </View>
+          <View style={{ flex: 1, marginHorizontal: 12 }}>
+            <Text style={styles.actionTitle}>{t('notification_preferences')}</Text>
             <Text style={styles.actionSub}>Granular alert switches & quiet hours schedule</Text>
           </View>
-          <Text style={styles.actionArrow}>→</Text>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.actionRow}
           onPress={() => navigation.navigate('EmergencyContact')}
+          activeOpacity={0.7}
         >
-          <View>
-            <Text style={styles.actionTitle}>🛡️ {t('emergency_contacts')}</Text>
-            <Text style={styles.actionSub}>Configure SOS trusted contact for safety dispatch</Text>
+          <View style={styles.iconCircle}>
+            <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.success} />
           </View>
-          <Text style={styles.actionArrow}>→</Text>
+          <View style={{ flex: 1, marginHorizontal: 12 }}>
+            <Text style={styles.actionTitle}>{t('emergency_contacts')}</Text>
+            <Text style={styles.actionSub}>Configure trusted contacts for SOS alert dispatch</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionRow} onPress={handleSelectLanguage}>
-          <View>
-            <Text style={styles.actionTitle}>🌐 {t('language')}</Text>
+        <TouchableOpacity
+          style={styles.actionRow}
+          onPress={handleSelectLanguage}
+          activeOpacity={0.7}
+        >
+          <View style={styles.iconCircle}>
+            <Ionicons name="globe-outline" size={20} color={COLORS.primaryLight} />
+          </View>
+          <View style={{ flex: 1, marginHorizontal: 12 }}>
+            <Text style={styles.actionTitle}>{t('language')}</Text>
             <Text style={styles.actionSub}>
-              Current: {language === 'hi' ? 'हिंदी (Hindi)' : 'English'}
+              {language === 'hi' ? 'हिंदी (Hindi)' : 'English'}
             </Text>
           </View>
-          <Text style={styles.actionArrow}>→</Text>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
         </TouchableOpacity>
 
         {user?.currentMode === 'worker' && (
           <TouchableOpacity
             style={styles.actionRow}
             onPress={() => navigation.navigate('WorkerVerification')}
+            activeOpacity={0.7}
           >
-            <View>
-              <Text style={styles.actionTitle}>🪪 ID Verification</Text>
-              <Text style={styles.actionSub}>Upload government ID to unlock applying to jobs</Text>
+            <View style={styles.iconCircle}>
+              <Ionicons name="ribbon-outline" size={20} color={COLORS.success} />
             </View>
-            <Text style={styles.actionArrow}>→</Text>
+            <View style={{ flex: 1, marginHorizontal: 12 }}>
+              <Text style={styles.actionTitle}>ID Verification</Text>
+              <Text style={styles.actionSub}>Upload government ID to unlock verified badge</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* PLATFORM & SAFETY */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>App Info & Safety</Text>
+      {/* PLATFORM & SAFETY INFO */}
+      <View style={[styles.card, SHADOWS.small]}>
+        <Text style={styles.sectionTitle}>Trust & Safety Info</Text>
 
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Platform</Text>
-          <Text style={styles.infoValue}>WorkMarket v3.0.0</Text>
+          <Text style={styles.infoValue}>WorkMarket v3.2.0</Text>
         </View>
 
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Escrow Protection</Text>
-          <Text style={[styles.infoValue, { color: '#4ade80' }]}>Active via Razorpay</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Ionicons name="lock-closed" size={13} color={COLORS.success} />
+            <Text style={[styles.infoValue, { color: COLORS.success }]}>Active via Razorpay</Text>
+          </View>
         </View>
 
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Safety Support (SOS)</Text>
-          <Text style={[styles.infoValue, { color: '#ef4444' }]}>24/7 Monitored</Text>
+          <Text style={styles.infoLabel}>Safety Dispatch Support</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Ionicons name="shield" size={13} color={COLORS.danger} />
+            <Text style={[styles.infoValue, { color: COLORS.danger }]}>24/7 Monitored</Text>
+          </View>
         </View>
       </View>
 
-      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+      {/* LOGOUT */}
+      <TouchableOpacity
+        style={[styles.logoutBtn, SHADOWS.small]}
+        onPress={handleLogout}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="log-out-outline" size={20} color={COLORS.danger} />
         <Text style={styles.logoutBtnText}>Sign Out</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -174,40 +216,102 @@ export default function SettingsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f172a' },
-  scroll: { padding: 20 },
-  profileHeader: { alignItems: 'center', marginBottom: 24, marginTop: 10 },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  scroll: { padding: 18, paddingBottom: 40 },
+
+  profileHeader: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 22,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+  },
   avatar: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 12
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    borderWidth: 3,
+    borderColor: COLORS.surfaceLight,
   },
-  avatarText: { fontSize: 32, fontWeight: '800', color: 'white' },
-  userName: { fontSize: 22, fontWeight: '800', color: '#f1f5f9' },
-  userPhone: { fontSize: 14, color: '#94a3b8', marginTop: 2 },
+  avatarText: { fontSize: 32, fontWeight: '900', color: '#FFFFFF' },
+  userName: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary },
+  userPhone: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
   modeBadge: {
-    backgroundColor: '#312e81', paddingHorizontal: 14, paddingVertical: 5,
-    borderRadius: 999, marginTop: 10
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.3)',
   },
-  modeBadgeText: { color: '#a5b4fc', fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
+  modeBadgeText: { color: COLORS.primaryLight, fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+
   card: {
-    backgroundColor: '#1e293b', borderRadius: 16, padding: 18,
-    borderWidth: 1, borderColor: '#334155', marginBottom: 16
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+    marginBottom: 16,
   },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 12, letterSpacing: 0.5 },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+    letterSpacing: 0.6,
+  },
   actionRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#334155'
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceBorder,
   },
-  actionTitle: { fontSize: 15, fontWeight: '700', color: '#f1f5f9' },
-  actionSub: { fontSize: 12, color: '#64748b', marginTop: 2, maxWidth: 260 },
-  actionArrow: { fontSize: 20, color: '#6366f1', fontWeight: '800' },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#334155' },
-  infoLabel: { color: '#94a3b8', fontSize: 14 },
-  infoValue: { color: '#f1f5f9', fontSize: 14, fontWeight: '600' },
+  iconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionTitle: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  actionSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2, lineHeight: 16 },
+
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceBorder,
+  },
+  infoLabel: { color: COLORS.textSecondary, fontSize: 13 },
+  infoValue: { color: COLORS.textPrimary, fontSize: 13, fontWeight: '700' },
+
   logoutBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)', borderWidth: 1, borderColor: '#ef4444',
-    borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8, marginBottom: 32
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: COLORS.danger,
+    borderRadius: 14,
+    paddingVertical: 16,
+    marginTop: 4,
+    marginBottom: 24,
   },
-  logoutBtnText: { color: '#ef4444', fontSize: 16, fontWeight: '700' },
+  logoutBtnText: { color: COLORS.danger, fontSize: 15, fontWeight: '800' },
 });
