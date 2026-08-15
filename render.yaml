@@ -1,13 +1,13 @@
 services:
   - type: web
-    name: work-marketplace-backend
+    name: work-marketplace-websocket
     runtime: node
     plan: free
-    region: singapore # or oregon, frankfurt, etc.
+    region: singapore # or frankfurt, oregon
     rootDir: work-marketplace/backend
     buildCommand: npm install
-    startCommand: node server.js
-    healthCheckPath: /api/health
+    startCommand: node websocket-server.js
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
@@ -16,16 +16,6 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: ADMIN_JWT_SECRET
-        sync: false
-      - key: CLOUDINARY_CLOUD_NAME
-        sync: false
-      - key: CLOUDINARY_API_KEY
-        sync: false
-      - key: CLOUDINARY_API_SECRET
-        sync: false
-      - key: RAZORPAY_KEY_ID
-        sync: false
-      - key: RAZORPAY_KEY_SECRET
         sync: false
       - key: ALLOWED_ORIGINS
         value: "*"
