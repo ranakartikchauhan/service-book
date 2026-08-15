@@ -1,80 +1,110 @@
 let admin;
 
 const initFirebase = () => {
-  if (admin) return admin; // already initialized
+  if (admin) return admin;
 
   try {
     admin = require('firebase-admin');
-    const serviceAccount = require(process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
+    
+    // Support path or inline JSON string in env
+    let serviceAccount;
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    } else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+      serviceAccount = require(process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
+    }
 
-    if (!admin.apps.length) {
+    if (serviceAccount && !admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
+      console.log('✅ Firebase Admin SDK initialized');
     }
-
-    console.log('✅ Firebase Admin initialized');
     return admin;
   } catch (error) {
-    console.warn('⚠️  Firebase Admin not initialized (push notifications disabled):', error.message);
-    console.warn('    To enable push notifications, add your firebase-service-account.json');
+    console.warn('⚠️  Firebase Admin not initialized (falling back to Expo Push / Mock):', error.message);
     return null;
   }
 };
 
 /**
- * Send a push notification to a single FCM device token.
- * Fails silently if Firebase is not configured (won't crash the server).
+ * Send a push notification (Supports Expo Push API and Firebase Cloud Messaging)
  */
 const sendPushNotification = async ({ token, title, body, data = {} }) => {
-  const firebaseAdmin = initFirebase();
-  if (!firebaseAdmin || !token) return;
+  if (!token) return;
 
-  try {
-    await firebaseAdmin.messaging().send({
-      token,
-      notification: { title, body },
-      data: Object.fromEntries(
-        Object.entries(data).map(([k, v]) => [k, String(v)]) // FCM data must be string values
-      ),
-      android: {
-        priority: 'high',
-      },
-      apns: {
-        payload: {
-          aps: { sound: 'default' },
+  // 1. Check if token is an Expo Push Token
+  if (token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken[')) {
+    try {
+      const response = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Accept-encoding': 'gzip, deflate',
+          'Content-Type': 'application/json',
         },
-      },
-    });
-  } catch (error) {
-    // Log but don't crash — push failures shouldn't block the main action
-    console.error('FCM send error:', error.message);
-
-    // Token is invalid/expired — caller should remove it from the User document
-    if (error.code === 'messaging/registration-token-not-registered') {
-      return { invalidToken: true };
+        body: JSON.stringify({
+          to: token,
+          sound: 'default',
+          title,
+          body,
+          data,
+          priority: 'high',
+          channelId: 'default',
+        }),
+      });
+      const result = await response.json();
+      console.log('📱 [Expo Push Sent]:', result);
+      return result;
+    } catch (err) {
+      console.error('Expo Push error:', err.message);
+      return;
     }
   }
+
+  // 2. Try Firebase Cloud Messaging if configured
+  const firebaseAdmin = initFirebase();
+  if (firebaseAdmin && admin.apps.length) {
+    try {
+      await firebaseAdmin.messaging().send({
+        token,
+        notification: { title, body },
+        data: Object.fromEntries(
+          Object.entries(data).map(([k, v]) => [k, String(v)])
+        ),
+        android: {
+          priority: 'high',
+        },
+        apns: {
+          payload: {
+            aps: { sound: 'default' },
+          },
+        },
+      });
+      console.log(`📱 [FCM Sent] To ${token.slice(0, 10)}... | Title: ${title}`);
+      return;
+    } catch (error) {
+      console.error('FCM send error:', error.message);
+      if (error.code === 'messaging/registration-token-not-registered') {
+        return { invalidToken: true };
+      }
+    }
+  }
+
+  // 3. Fallback / Dev Log
+  console.log(`\n======================================================`);
+  console.log(`🔔 [PUSH NOTIFICATION] To: ${token?.slice(0, 15)}...`);
+  console.log(`   Title: ${title}`);
+  console.log(`   Body:  ${body}`);
+  console.log(`======================================================\n`);
 };
 
 /**
- * Send the same notification to multiple tokens at once.
+ * Send multicast notification
  */
 const sendMulticast = async ({ tokens, title, body, data = {} }) => {
-  const firebaseAdmin = initFirebase();
-  if (!firebaseAdmin || !tokens?.length) return;
-
-  try {
-    const message = {
-      notification: { title, body },
-      data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
-      tokens,
-    };
-    const response = await firebaseAdmin.messaging().sendEachForMulticast(message);
-    return response;
-  } catch (error) {
-    console.error('FCM multicast error:', error.message);
-  }
+  if (!tokens || !tokens.length) return;
+  await Promise.all(tokens.map((token) => sendPushNotification({ token, title, body, data })));
 };
 
 // ─── Notification helpers for specific events ────────────────────────────────
@@ -98,8 +128,8 @@ const notifyApplicationRejected = (token, jobTitle) =>
 const notifyNewMessage = (token, senderName) =>
   sendPushNotification({
     token,
-    title: `New message from ${senderName}`,
-    body: 'Tap to view your conversation.',
+    title: `💬 New message from ${senderName}`,
+    body: 'Tap to open chat conversation.',
     data: { type: 'new_message' },
   });
 
@@ -107,15 +137,15 @@ const notifyJobCompleted = (token, jobTitle) =>
   sendPushNotification({
     token,
     title: '✅ Job Completed',
-    body: `"${jobTitle}" has been marked complete. Payment is being processed.`,
+    body: `"${jobTitle}" has been marked complete. Escrow payout is being processed.`,
     data: { type: 'job_completed' },
   });
 
 const notifyNewApplicant = (token, jobTitle) =>
   sendPushNotification({
     token,
-    title: 'New Applicant',
-    body: `Someone applied to your job "${jobTitle}". View their profile.`,
+    title: '👤 New Applicant',
+    body: `A verified worker applied to your job "${jobTitle}". Review proposal.`,
     data: { type: 'new_applicant' },
   });
 
