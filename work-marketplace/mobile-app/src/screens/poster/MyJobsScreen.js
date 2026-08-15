@@ -69,14 +69,24 @@ export default function MyJobsScreen({ navigation }) {
 
         <View style={styles.cardFooter}>
           {isActiveSession ? (
-            <TouchableOpacity
-              style={styles.activeSessionBtn}
-              onPress={() => navigation.navigate('PosterActiveJob', { jobId: item._id })}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="flash-outline" size={14} color="#FFFFFF" />
-              <Text style={styles.activeSessionTxt}>Open Active Job & Tracking</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 8, flex: 1 }}>
+              <TouchableOpacity
+                style={[styles.activeSessionBtn, { flex: 1 }]}
+                onPress={() => navigation.navigate('PosterActiveJob', { jobId: item._id })}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="flash-outline" size={14} color="#FFFFFF" />
+                <Text style={styles.activeSessionTxt}>Live Tracking</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickChatBtn}
+                onPress={() => navigation.navigate('Chat', { jobId: item._id, name: item.title })}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="chatbubbles" size={14} color="#FFFFFF" />
+                <Text style={styles.quickChatBtnTxt}>Chat</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <TouchableOpacity
               style={styles.actionBtn}
@@ -150,13 +160,28 @@ const styles = StyleSheet.create({
   activeSessionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     backgroundColor: COLORS.primary,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 8,
   },
   activeSessionTxt: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
+
+  quickChatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: COLORS.surfaceLight,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorderLight,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 8,
+  },
+  quickChatBtnTxt: { color: COLORS.textPrimary, fontSize: 12, fontWeight: '800' },
 
   emptyContainer: { flex: 1 },
   emptyState: { alignItems: 'center', paddingTop: 90, paddingHorizontal: 24 },

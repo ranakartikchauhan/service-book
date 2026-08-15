@@ -91,6 +91,17 @@ export default function MyApplicationsScreen({ navigation }) {
             <Text style={styles.noteText} numberOfLines={1}>"{item.message}"</Text>
           </View>
         ) : null}
+
+        {item.status === 'accepted' && (
+          <TouchableOpacity
+            style={styles.chatActionBtn}
+            onPress={() => navigation.navigate('Chat', { jobId: job._id, name: job.title })}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="chatbubbles" size={16} color="#FFFFFF" />
+            <Text style={styles.chatActionBtnText}>Chat with Client</Text>
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
     );
   };
@@ -212,6 +223,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   noteText: { fontSize: 12, color: COLORS.textSecondary, fontStyle: 'italic', flex: 1 },
+
+  chatActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 12,
+  },
+  chatActionBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
 
   emptyContainer: { flex: 1 },
   emptyState: { alignItems: 'center', paddingTop: 100, paddingHorizontal: 24 },
