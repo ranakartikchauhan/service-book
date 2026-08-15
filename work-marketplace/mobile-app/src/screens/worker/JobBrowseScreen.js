@@ -311,8 +311,28 @@ export default function JobBrowseScreen({ navigation }) {
               <View style={styles.emptyIconCircle}>
                 <Ionicons name="search-outline" size={36} color={COLORS.textMuted} />
               </View>
-              <Text style={styles.emptyTitle}>No jobs nearby</Text>
-              <Text style={styles.emptySubtitle}>Try expanding your search radius to 25km or checking other categories.</Text>
+              <Text style={styles.emptyTitle}>No jobs within {selectedRadius}km</Text>
+              <Text style={styles.emptySubtitle}>No open service requests in your immediate radius right now.</Text>
+              {selectedRadius < 25 && (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    backgroundColor: COLORS.primary,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: 10,
+                    marginTop: 16,
+                  }}
+                  onPress={() => setSelectedRadius(25)}
+                >
+                  <Ionicons name="expand-outline" size={16} color="#FFFFFF" />
+                  <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13 }}>
+                    Expand Search to 25km
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />

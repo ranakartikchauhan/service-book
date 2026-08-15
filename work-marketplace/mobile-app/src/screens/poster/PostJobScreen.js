@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../api/client';
 import { COLORS, SHADOWS } from '../../theme';
@@ -20,6 +21,8 @@ export default function PostJobScreen({ navigation }) {
   const [categories, setCategories] = useState([]);
   const [fetchingCats, setFetchingCats] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [coords, setCoords] = useState(null); // { longitude, latitude }
 
   const [form, setForm] = useState({
     title: '',
@@ -32,8 +35,61 @@ export default function PostJobScreen({ navigation }) {
     isUrgent: false,
   });
 
+  const detectLocation = async () => {
+    setDetectingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Location Permission Required',
+          'Please allow location access to auto-detect your area so nearby workers can find this job.'
+        );
+        return;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const currentCoords = {
+        longitude: loc.coords.longitude,
+        latitude: loc.coords.latitude,
+      };
+      setCoords(currentCoords);
+
+      // Reverse geocode to get human-readable street/locality/city
+      const reverse = await Location.reverseGeocodeAsync({
+        latitude: currentCoords.latitude,
+        longitude: currentCoords.longitude,
+      });
+
+      if (reverse && reverse[0]) {
+        const item = reverse[0];
+        const parts = [
+          item.name,
+          item.street,
+          item.district || item.subregion,
+          item.city,
+          item.region,
+          item.postalCode,
+        ].filter(Boolean);
+
+        const autoAddress = parts.join(', ');
+        setForm((f) => ({ ...f, addressText: autoAddress }));
+      }
+    } catch (err) {
+      console.error('Error detecting location:', err);
+      Alert.alert('Location Notice', 'Could not auto-detect location. You can type your address manually.');
+    } finally {
+      setDetectingLocation(false);
+    }
+  };
+
   useEffect(() => {
-    const loadCategories = async () => {
+    const init = async () => {
+      // Auto-detect location on initial screen load
+      detectLocation();
+
       try {
         const { data } = await api.get('/jobs/categories');
         const list = data.data.categories || [];
@@ -47,20 +103,45 @@ export default function PostJobScreen({ navigation }) {
         setFetchingCats(false);
       }
     };
-    loadCategories();
+    init();
   }, []);
 
   const handlePost = async () => {
     if (!form.title || !form.description || !form.budgetAmount || !form.category) {
       return Alert.alert('Missing Fields', 'Please fill in title, description, category, and budget.');
     }
+    if (!form.addressText.trim()) {
+      return Alert.alert('Missing Location', 'Please provide an address or landmark for the job.');
+    }
 
     setLoading(true);
     try {
+      let finalCoords = coords;
+
+      // If user typed custom address and no coords yet or edited, forward-geocode it
+      if (!finalCoords && form.addressText.trim()) {
+        try {
+          const geocoded = await Location.geocodeAsync(form.addressText.trim());
+          if (geocoded && geocoded[0]) {
+            finalCoords = {
+              longitude: geocoded[0].longitude,
+              latitude: geocoded[0].latitude,
+            };
+          }
+        } catch (e) {
+          console.warn('Geocoding fallback failed:', e);
+        }
+      }
+
+      // Default fallback if GPS is turned off completely
+      if (!finalCoords) {
+        finalCoords = { longitude: 77.2090, latitude: 28.6139 };
+      }
+
       const payload = {
         ...form,
-        longitude: 77.2090,
-        latitude: 28.6139,
+        longitude: finalCoords.longitude,
+        latitude: finalCoords.latitude,
         budgetAmount: parseFloat(form.budgetAmount),
         scheduledDate: new Date(form.scheduledDate),
       };
@@ -161,12 +242,31 @@ export default function PostJobScreen({ navigation }) {
             />
           </View>
 
-          {/* LOCATION */}
+          {/* LOCATION WITH AUTO-GPS DETECT */}
           <View style={styles.inputGroup}>
-            <View style={styles.labelRow}>
-              <Ionicons name="location-outline" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.label}>Address / Landmark *</Text>
+            <View style={styles.locationHeaderRow}>
+              <View style={styles.labelRow}>
+                <Ionicons name="location-outline" size={14} color={COLORS.textSecondary} />
+                <Text style={styles.label}>Address / Area *</Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.detectLocationBtn}
+                onPress={detectLocation}
+                disabled={detectingLocation}
+                activeOpacity={0.7}
+              >
+                {detectingLocation ? (
+                  <ActivityIndicator size="small" color={COLORS.primaryLight} />
+                ) : (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Ionicons name="navigate" size={12} color={COLORS.primaryLight} />
+                    <Text style={styles.detectLocationTxt}>Auto-Detect GPS</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
+
             <TextInput
               style={styles.input}
               placeholder="e.g. Tower 4, Flat 502, Sector 62, Noida"
@@ -174,6 +274,15 @@ export default function PostJobScreen({ navigation }) {
               value={form.addressText}
               onChangeText={(v) => setForm({ ...form, addressText: v })}
             />
+
+            {coords && (
+              <View style={styles.gpsPill}>
+                <Ionicons name="checkmark-circle" size={12} color={COLORS.success} />
+                <Text style={styles.gpsPillTxt}>
+                  GPS Verified ({coords.latitude.toFixed(4)}°, {coords.longitude.toFixed(4)}°) — Nearby workers will see this immediately
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* BUDGET & RATE TYPE */}
@@ -275,6 +384,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.surfaceBorder,
   },
+  locationHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  detectLocationBtn: {
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  detectLocationTxt: { fontSize: 11, fontWeight: '800', color: COLORS.primaryLight },
+
+  gpsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
+  },
+  gpsPillTxt: { fontSize: 10, color: COLORS.success, fontWeight: '700', flex: 1 },
+
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   label: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
   inputGroup: { marginTop: 14 },
