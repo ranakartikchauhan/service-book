@@ -508,6 +508,16 @@ router.get('/revenue/breakdown', async (req, res, next) => {
         commissionRevenue: commissionStats[0]?.totalCommission || 0,
         grossJobVolume: commissionStats[0]?.totalGross || 0,
         subscriptionRevenue: subscriptionStats[0]?.totalSubscriptionRevenue || 0,
+        totalCombinedRevenue:
+          (commissionStats[0]?.totalCommission || 0) +
+          (subscriptionStats[0]?.totalSubscriptionRevenue || 0),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // POST /api/admin/broadcast-notification
 router.post('/broadcast-notification', async (req, res, next) => {
   try {
