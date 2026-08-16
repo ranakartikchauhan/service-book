@@ -12,15 +12,22 @@ router.get('/:jobId/messages', async (req, res, next) => {
   try {
     const { page = 1, limit = 50 } = req.query;
 
-    // Ensure the requesting user is either the poster or assigned worker
+    // Ensure the requesting user is either the poster, assigned worker, or applicant
     const job = await Job.findById(req.params.jobId);
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
 
-    const isParty =
-      job.posterId.equals(req.user._id) ||
-      (job.assignedWorkerId && job.assignedWorkerId.equals(req.user._id));
+    const posterIdStr = (job.posterId?._id || job.posterId)?.toString();
+    const assignedWorkerIdStr = (job.assignedWorkerId?._id || job.assignedWorkerId)?.toString();
+    const userIdStr = req.user._id?.toString();
 
-    if (!isParty) {
+    const isPoster = posterIdStr === userIdStr;
+    const isAssignedWorker = assignedWorkerIdStr === userIdStr;
+    const isApplicant = await require('../models/Application').exists({
+      jobId: job._id,
+      workerId: req.user._id,
+    });
+
+    if (!isPoster && !isAssignedWorker && !isApplicant && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Not authorized to view this chat' });
     }
 
@@ -60,15 +67,31 @@ router.post('/:jobId/messages', async (req, res, next) => {
     const job = await Job.findById(req.params.jobId);
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
 
-    const isParty =
-      job.posterId.equals(req.user._id) ||
-      (job.assignedWorkerId && job.assignedWorkerId.equals(req.user._id));
+    const posterIdStr = (job.posterId?._id || job.posterId)?.toString();
+    const assignedWorkerIdStr = (job.assignedWorkerId?._id || job.assignedWorkerId)?.toString();
+    const userIdStr = req.user._id?.toString();
 
-    if (!isParty) {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
+    const isPoster = posterIdStr === userIdStr;
+    const isAssignedWorker = assignedWorkerIdStr === userIdStr;
+    const isApplicant = await require('../models/Application').exists({
+      jobId: job._id,
+      workerId: req.user._id,
+    });
+
+    if (!isPoster && !isAssignedWorker && !isApplicant && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized to send messages in this chat' });
     }
 
-    const recipientId = job.posterId.equals(req.user._id) ? job.assignedWorkerId : job.posterId;
+    let recipientId = null;
+    if (isPoster) {
+      recipientId = job.assignedWorkerId;
+      if (!recipientId) {
+        const firstApp = await require('../models/Application').findOne({ jobId: job._id }).sort({ createdAt: 1 });
+        if (firstApp) recipientId = firstApp.workerId;
+      }
+    } else {
+      recipientId = job.posterId;
+    }
 
     const message = await ChatMessage.create({
       jobId: job._id,
@@ -86,10 +109,12 @@ router.post('/:jobId/messages', async (req, res, next) => {
     }
 
     // Send push notification if recipient has FCM token
-    const recipient = await require('../models/User').findById(recipientId);
-    if (recipient?.fcmToken) {
-      const { notifyNewMessage } = require('../services/fcmService');
-      notifyNewMessage(recipient.fcmToken, req.user.name);
+    if (recipientId) {
+      const recipient = await require('../models/User').findById(recipientId);
+      if (recipient?.fcmToken) {
+        const { notifyNewMessage } = require('../services/fcmService');
+        notifyNewMessage(recipient.fcmToken, req.user.name);
+      }
     }
 
     res.status(201).json({ success: true, data: { message: populated } });

@@ -62,7 +62,7 @@ export default function ChatScreen({ route }) {
       });
     }
 
-    const interval = setInterval(fetchMessages, 6000); // Polling backup
+    const interval = setInterval(fetchMessages, 2500); // Live polling sync
     return () => clearInterval(interval);
   }, [jobId]);
 
