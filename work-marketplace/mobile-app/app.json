@@ -7,8 +7,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "backgroundColor": "#0f172a",
-      "resizeMode": "contain"
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
     },
     "ios": {
       "supportsTablet": true,
@@ -23,8 +24,8 @@
     "android": {
       "package": "com.workmarket.app",
       "adaptiveIcon": {
-        "backgroundColor": "#0f172a",
-        "foregroundImage": "./assets/icon.png"
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#0f172a"
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
@@ -44,11 +45,23 @@
           "locationAlwaysAndWhenInUsePermission": "WorkMarket uses your location to discover and match local service jobs near you."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "WorkMarket needs access to your photos so you can attach work area images.",
+          "cameraPermission": "WorkMarket needs access to your camera to take work photos."
+        }
+      ],
       "expo-notifications"
     ],
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "13e7ebd2-672b-43dc-bb6a-654a22aedc6d"
+      }
     }
   }
 }
