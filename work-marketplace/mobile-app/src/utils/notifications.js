@@ -4,14 +4,18 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import api from '../api/client';
 
-// Configure foreground notification presentation
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Configure foreground notification presentation safely
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+} catch (handlerErr) {
+  console.warn('Notification handler init warning:', handlerErr?.message || handlerErr);
+}
 
 /**
  * Register device for push notifications and sync token with backend

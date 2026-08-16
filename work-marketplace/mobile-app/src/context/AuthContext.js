@@ -18,8 +18,8 @@ export const AuthProvider = ({ children }) => {
         if (token) {
           const { data } = await api.get('/auth/me');
           setUser(data.data.user);
-          // Register push notifications
-          registerForPushNotificationsAsync();
+          // Register push notifications safely
+          registerForPushNotificationsAsync().catch((e) => console.warn('Push registration on boot warning:', e));
         }
       } catch {
         await AsyncStorage.removeItem('userToken');
