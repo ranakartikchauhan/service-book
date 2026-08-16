@@ -3,6 +3,8 @@ import { NavLink } from 'react-router-dom';
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: '📊' },
   { to: '/safety', label: 'Safety Events', icon: '🆘', sos: true },
+  { to: '/training-videos', label: 'Training Academy', icon: '🎓' },
+  { to: '/support-tickets', label: 'Support Tickets', icon: '🎧' },
   { to: '/verifications', label: 'Verifications', icon: '🪪' },
   { to: '/jobs', label: 'All Jobs', icon: '💼' },
   { to: '/users', label: 'Users', icon: '👥' },

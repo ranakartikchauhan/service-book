@@ -11,6 +11,8 @@ import SubscriptionPlans from './pages/SubscriptionPlans';
 import Subscribers from './pages/Subscribers';
 import Users from './pages/Users';
 import Config from './pages/Config';
+import TrainingVideos from './pages/TrainingVideos';
+import SupportTickets from './pages/SupportTickets';
 import { useEffect, useState } from 'react';
 import api from './api/client';
 
@@ -40,6 +42,8 @@ function ProtectedLayout() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/verifications" element={<Verifications />} />
           <Route path="/safety" element={<SafetyEvents />} />
+          <Route path="/training-videos" element={<TrainingVideos />} />
+          <Route path="/support-tickets" element={<SupportTickets />} />
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/users" element={<Users />} />
           <Route path="/transactions" element={<Transactions />} />
