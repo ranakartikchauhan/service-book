@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator, FlatList,
+  TextInput, Alert, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ export default function EarningsScreen() {
   const [earningsTotal, setEarningsTotal] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [payoutForm, setPayoutForm] = useState({ upiId: '', bankAccountNumber: '', ifscCode: '' });
   const [savingPayout, setSavingPayout] = useState(false);
   const [showPayoutEdit, setShowPayoutEdit] = useState(false);
@@ -38,6 +39,12 @@ export default function EarningsScreen() {
     loadData();
   }, []);
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
+
   const handleSavePayout = async () => {
     setSavingPayout(true);
     try {
@@ -61,7 +68,17 @@ export default function EarningsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
+      >
         {/* HERO EARNINGS BALANCE CARD */}
         <View style={[styles.heroCard, SHADOWS.medium]}>
           <View style={styles.heroHeader}>

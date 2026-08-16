@@ -280,8 +280,11 @@ router.patch('/:id/complete', async (req, res, next) => {
     job.status = JOB_STATUS.COMPLETED;
     await job.save();
 
-    // Release payment to worker if in escrow
-    const transaction = await Transaction.findOne({ jobId: job._id });
+    // Release payment to worker if in escrow, or record earnings transaction
+    let transaction = await Transaction.findOne({ jobId: job._id });
+    const app = await Application.findOne({ jobId: job._id, status: 'accepted' });
+    const payoutAmount = (app && app.proposedRate) ? app.proposedRate : (job.budget || 500);
+
     if (transaction && transaction.status === TRANSACTION_STATUS.HELD_IN_ESCROW) {
       const { createPayout } = require('../services/razorpayService');
       const workerProfile = await WorkerProfile.findOne({ userId: job.assignedWorkerId });
@@ -301,14 +304,32 @@ router.patch('/:id/complete', async (req, res, next) => {
       // Update worker's total earnings
       await WorkerProfile.findOneAndUpdate(
         { userId: job.assignedWorkerId },
-        { $inc: { earningsTotal: transaction.workerPayout, completedJobs: 1 } }
+        { $inc: { earningsTotal: transaction.workerPayout, completedJobs: 1 } },
+        { upsert: true }
       );
     } else {
-      // Increment completedJobs counter
+      if (!transaction && job.assignedWorkerId) {
+        transaction = await Transaction.create({
+          jobId: job._id,
+          posterId: job.posterId,
+          workerId: job.assignedWorkerId,
+          amount: payoutAmount,
+          platformCommission: 0,
+          workerPayout: payoutAmount,
+          status: TRANSACTION_STATUS.RELEASED,
+          releasedAt: new Date(),
+        });
+      } else if (transaction) {
+        transaction.status = TRANSACTION_STATUS.RELEASED;
+        transaction.releasedAt = new Date();
+        await transaction.save();
+      }
+
       if (job.assignedWorkerId) {
         await WorkerProfile.findOneAndUpdate(
           { userId: job.assignedWorkerId },
-          { $inc: { completedJobs: 1 } }
+          { $inc: { earningsTotal: payoutAmount, completedJobs: 1 } },
+          { upsert: true }
         );
       }
     }
