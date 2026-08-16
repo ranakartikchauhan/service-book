@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
+import { getAdminSocket } from '../services/socket';
 
 const STATUS_BADGE = {
   active: 'badge-danger',
@@ -22,7 +23,21 @@ export default function SafetyEvents() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchEvents(statusFilter); }, [statusFilter]);
+  useEffect(() => {
+    fetchEvents(statusFilter);
+
+    // Real-time live emergency radar via Render WebSocket Gateway
+    const socket = getAdminSocket();
+    const handleNewSos = (eventData) => {
+      console.log('🚨 [LIVE SOS ALERT RECEIVED VIA WEBSOCKET]:', eventData);
+      setEvents((prev) => [eventData, ...prev]);
+    };
+
+    socket.on('safety:sos', handleNewSos);
+    return () => {
+      socket.off('safety:sos', handleNewSos);
+    };
+  }, [statusFilter]);
 
   const updateEvent = async (id, status, adminNotes) => {
     setUpdating(id);

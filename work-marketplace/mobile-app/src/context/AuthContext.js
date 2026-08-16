@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/client';
+import { registerForPushNotificationsAsync } from '../utils/notifications';
+import { disconnectSocket } from '../api/socket';
 
 const AuthContext = createContext(null);
 
@@ -16,6 +18,8 @@ export const AuthProvider = ({ children }) => {
         if (token) {
           const { data } = await api.get('/auth/me');
           setUser(data.data.user);
+          // Register push notifications
+          registerForPushNotificationsAsync();
         }
       } catch {
         await AsyncStorage.removeItem('userToken');
@@ -30,6 +34,7 @@ export const AuthProvider = ({ children }) => {
     const { data } = await api.post('/auth/login', { phone, email, password });
     await AsyncStorage.setItem('userToken', data.data.token);
     setUser(data.data.user);
+    registerForPushNotificationsAsync();
     return data.data.user;
   };
 
@@ -37,6 +42,7 @@ export const AuthProvider = ({ children }) => {
     const { data } = await api.post('/auth/login-with-otp', { email, otp });
     await AsyncStorage.setItem('userToken', data.data.token);
     setUser(data.data.user);
+    registerForPushNotificationsAsync();
     return data.data.user;
   };
 
@@ -44,10 +50,12 @@ export const AuthProvider = ({ children }) => {
     const { data } = await api.post('/auth/register', { name, phone, email, password, otp });
     await AsyncStorage.setItem('userToken', data.data.token);
     setUser(data.data.user);
+    registerForPushNotificationsAsync();
     return data.data.user;
   };
 
   const logout = async () => {
+    disconnectSocket();
     await AsyncStorage.removeItem('userToken');
     setUser(null);
   };

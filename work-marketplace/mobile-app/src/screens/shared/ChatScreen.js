@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
+import { getSocket, joinJobRoom, leaveJobRoom } from '../../api/socket';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, SHADOWS } from '../../theme';
 
@@ -34,7 +35,34 @@ export default function ChatScreen({ route }) {
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 4000);
+
+    // Connect to WebSocket room for instant live messaging
+    if (jobId) {
+      joinJobRoom(jobId);
+
+      getSocket().then((socket) => {
+        if (socket) {
+          const handleIncomingMessage = (newMsg) => {
+            if (newMsg.jobId === jobId || newMsg.jobId?._id === jobId) {
+              setMessages((prev) => {
+                if (prev.some((m) => m._id === newMsg._id)) return prev;
+                return [...prev, newMsg];
+              });
+              setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+            }
+          };
+
+          socket.on('chat:message', handleIncomingMessage);
+
+          return () => {
+            socket.off('chat:message', handleIncomingMessage);
+            leaveJobRoom(jobId);
+          };
+        }
+      });
+    }
+
+    const interval = setInterval(fetchMessages, 6000); // Polling backup
     return () => clearInterval(interval);
   }, [jobId]);
 
