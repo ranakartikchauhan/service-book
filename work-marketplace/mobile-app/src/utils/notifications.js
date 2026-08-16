@@ -8,6 +8,10 @@ import api from '../api/client';
  * Register device for push notifications and sync token with backend
  */
 export async function registerForPushNotificationsAsync() {
+  if (Platform.OS === 'web') {
+    return { success: true, token: null, isWeb: true };
+  }
+
   let token = null;
 
   try {
