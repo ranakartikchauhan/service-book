@@ -45,17 +45,23 @@ export async function registerForPushNotificationsAsync() {
       return null;
     }
 
-    // Retrieve EAS Project ID
-    const projectId =
-      Constants?.expoConfig?.extra?.eas?.projectId ??
-      Constants?.easConfig?.projectId ??
-      '43008fda-616a-4bad-a04e-8d586b53cc4f';
+    // Retrieve Expo Push Token with multiple fallbacks
+    try {
+      const projectId =
+        Constants?.expoConfig?.extra?.eas?.projectId ||
+        Constants?.easConfig?.projectId ||
+        '43008fda-616a-4bad-a04e-8d586b53cc4f';
 
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId,
-    });
-
-    token = tokenData?.data;
+      const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+      token = tokenData?.data;
+    } catch (e1) {
+      try {
+        const tokenData = await Notifications.getExpoPushTokenAsync();
+        token = tokenData?.data;
+      } catch (e2) {
+        console.warn('Expo push token fallback notice:', e2?.message || e2);
+      }
+    }
     console.log('📲 [Device Push Token Acquired]:', token);
 
     // Sync token with backend user document via both routes
