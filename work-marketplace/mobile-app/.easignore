@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Local Native Builds
+/android
+/ios
+.gradle/
+build/
+
+# Expo / Build Artifacts
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+*.jks
+*.p8
+*.p12
+*.key
