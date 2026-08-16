@@ -154,29 +154,36 @@ export default function NotificationPreferencesScreen() {
           <TouchableOpacity
             style={{
               backgroundColor: '#3b82f6',
-              paddingVertical: 10,
+              paddingVertical: 12,
               paddingHorizontal: 14,
-              borderRadius: 8,
+              borderRadius: 10,
               alignItems: 'center',
               flexDirection: 'row',
               justifyContent: 'center',
-              gap: 6,
+              gap: 8,
             }}
             onPress={async () => {
               try {
                 const { registerForPushNotificationsAsync } = require('../../utils/notifications');
                 const token = await registerForPushNotificationsAsync();
                 if (token) {
-                  Alert.alert('✅ Device Registered!', `Push Token synced successfully:\n\n${token.slice(0, 30)}...`);
+                  Alert.alert(
+                    '✅ Push Notifications Active!',
+                    `Your device is registered to receive live alerts.\n\nToken:\n${token.slice(0, 35)}...`
+                  );
                 } else {
-                  Alert.alert('Permission Needed', 'Please allow notifications in your phone Settings -> Apps -> WorkMarket.');
+                  Alert.alert(
+                    '⚠️ Permission Required',
+                    'Push notifications are currently disabled for WorkMarket. Please enable them in your phone Settings -> Apps -> WorkMarket -> Notifications.'
+                  );
                 }
               } catch (e) {
-                Alert.alert('Registration Error', e.message);
+                Alert.alert('Diagnostic Notice', e?.message || 'Unable to register device token.');
               }
             }}
           >
-            <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13 }}>Register & Sync Device Token</Text>
+            <Ionicons name="notifications" size={16} color="#FFFFFF" />
+            <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 14 }}>Register & Sync Device Token</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
