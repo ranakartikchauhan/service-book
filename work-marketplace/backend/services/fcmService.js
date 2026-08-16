@@ -30,7 +30,19 @@ const initFirebase = () => {
 /**
  * Send a push notification (Supports Expo Push API and Firebase Cloud Messaging)
  */
-const sendPushNotification = async ({ token, title, body, data = {} }) => {
+const sendPushNotification = async (firstArg, secondArg) => {
+  let token, title, body, data;
+  if (typeof firstArg === 'string') {
+    token = firstArg;
+    title = secondArg?.title;
+    body = secondArg?.body;
+    data = secondArg?.data || {};
+  } else if (firstArg && typeof firstArg === 'object') {
+    token = firstArg.token;
+    title = firstArg.title;
+    body = firstArg.body;
+    data = firstArg.data || {};
+  }
   if (!token) return;
 
   // 1. Check if token is an Expo Push Token
