@@ -145,11 +145,38 @@ export default function NotificationPreferencesScreen() {
         <View style={[styles.card, { marginTop: 24, padding: 16 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#22c55e' }} />
-            <Text style={{ color: '#f8fafc', fontWeight: '800', fontSize: 13 }}>Push Notifications Ready</Text>
+            <Text style={{ color: '#f8fafc', fontWeight: '800', fontSize: 13 }}>Push Notifications Diagnostics</Text>
           </View>
-          <Text style={{ color: '#94a3b8', fontSize: 12, lineHeight: 17 }}>
-            This phone is registered to receive alerts for new applicants, job acceptances, and direct messages.
+          <Text style={{ color: '#94a3b8', fontSize: 12, lineHeight: 17, marginBottom: 12 }}>
+            Tap below to test push notification connection and register this device token with the server.
           </Text>
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#3b82f6',
+              paddingVertical: 10,
+              paddingHorizontal: 14,
+              borderRadius: 8,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+            onPress={async () => {
+              try {
+                const { registerForPushNotificationsAsync } = require('../../utils/notifications');
+                const token = await registerForPushNotificationsAsync();
+                if (token) {
+                  Alert.alert('✅ Device Registered!', `Push Token synced successfully:\n\n${token.slice(0, 30)}...`);
+                } else {
+                  Alert.alert('Permission Needed', 'Please allow notifications in your phone Settings -> Apps -> WorkMarket.');
+                }
+              } catch (e) {
+                Alert.alert('Registration Error', e.message);
+              }
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13 }}>Register & Sync Device Token</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
