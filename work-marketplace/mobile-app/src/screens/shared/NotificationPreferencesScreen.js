@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Switch,
-  TouchableOpacity, ActivityIndicator, Alert,
+  TouchableOpacity, ActivityIndicator, Alert, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../api/client';
@@ -173,8 +173,12 @@ export default function NotificationPreferencesScreen() {
                   );
                 } else {
                   Alert.alert(
-                    '⚠️ Permission Required',
-                    'Push notifications are currently disabled for WorkMarket. Please enable them in your phone Settings -> Apps -> WorkMarket -> Notifications.'
+                    '⚠️ Notifications Disabled in OS',
+                    'Android OS is currently blocking notifications for WorkMarket.\n\nTap "Open Settings" below to turn "Allow Notifications" ON.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Open Settings', onPress: () => Linking.openSettings() },
+                    ]
                   );
                 }
               } catch (e) {
