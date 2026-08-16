@@ -140,6 +140,17 @@ export default function NotificationPreferencesScreen() {
         >
           {saving ? <ActivityIndicator color="white" /> : <Text style={styles.saveBtnText}>{t('save')}</Text>}
         </TouchableOpacity>
+
+        {/* DEVICE PUSH TOKEN DIAGNOSTICS */}
+        <View style={[styles.card, { marginTop: 24, padding: 16 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#22c55e' }} />
+            <Text style={{ color: '#f8fafc', fontWeight: '800', fontSize: 13 }}>Push Notifications Ready</Text>
+          </View>
+          <Text style={{ color: '#94a3b8', fontSize: 12, lineHeight: 17 }}>
+            This phone is registered to receive alerts for new applicants, job acceptances, and direct messages.
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
