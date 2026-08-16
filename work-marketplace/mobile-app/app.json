@@ -44,13 +44,7 @@
           "locationAlwaysAndWhenInUsePermission": "WorkMarket uses your location to discover and match local service jobs near you."
         }
       ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#6366F1"
-        }
-      ]
+      "expo-notifications"
     ],
     "web": {
       "favicon": "./assets/favicon.png",
