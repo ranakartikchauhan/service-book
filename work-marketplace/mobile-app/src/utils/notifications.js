@@ -1,4 +1,6 @@
+import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import api from '../api/client';
 
@@ -43,23 +45,37 @@ export async function registerForPushNotificationsAsync() {
       return null;
     }
 
-    // Retrieve Expo Push Token (using projectId from app.json)
+    // Retrieve EAS Project ID
+    const projectId =
+      Constants?.expoConfig?.extra?.eas?.projectId ??
+      Constants?.easConfig?.projectId ??
+      '43008fda-616a-4bad-a04e-8d586b53cc4f';
+
     const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: '43008fda-616a-4bad-a04e-8d586b53cc4f',
+      projectId,
     });
 
     token = tokenData?.data;
     console.log('📲 [Device Push Token Acquired]:', token);
 
-    // Sync token with backend user document
+    // Sync token with backend user document via both routes
     if (token) {
-      await api.patch('/auth/fcm-token', { token });
+      try {
+        await api.patch('/auth/fcm-token', { token });
+      } catch (e) {
+        console.warn('Auth fcm-token sync error:', e?.message);
+      }
+      try {
+        await api.post('/notifications/register-device', { fcmToken: token });
+      } catch (e) {
+        console.warn('Notifications register-device sync error:', e?.message);
+      }
       console.log('✅ Push token synced with backend!');
     }
 
     return token;
   } catch (error) {
-    console.warn('Push notification registration warning:', error.message);
+    console.warn('Push notification registration warning:', error?.message || error);
     return null;
   }
 }

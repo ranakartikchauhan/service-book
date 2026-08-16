@@ -82,15 +82,17 @@ router.post('/:jobId/messages', async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Not authorized to send messages in this chat' });
     }
 
-    let recipientId = null;
-    if (isPoster) {
-      recipientId = job.assignedWorkerId;
-      if (!recipientId) {
-        const firstApp = await require('../models/Application').findOne({ jobId: job._id }).sort({ createdAt: 1 });
-        if (firstApp) recipientId = firstApp.workerId;
+    let recipientId = req.body.recipientId || null;
+    if (!recipientId) {
+      if (isPoster) {
+        recipientId = job.assignedWorkerId;
+        if (!recipientId) {
+          const firstApp = await require('../models/Application').findOne({ jobId: job._id }).sort({ createdAt: 1 });
+          if (firstApp) recipientId = firstApp.workerId;
+        }
+      } else {
+        recipientId = job.posterId;
       }
-    } else {
-      recipientId = job.posterId;
     }
 
     const message = await ChatMessage.create({
