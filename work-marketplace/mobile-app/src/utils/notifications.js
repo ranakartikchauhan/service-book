@@ -45,7 +45,9 @@ export async function registerForPushNotificationsAsync() {
       return null;
     }
 
-    // Retrieve Expo Push Token with multiple fallbacks
+    let tokenError = null;
+
+    // 1. Try Expo Push Token with EAS Project ID
     try {
       const projectId =
         Constants?.expoConfig?.extra?.eas?.projectId ||
@@ -55,13 +57,24 @@ export async function registerForPushNotificationsAsync() {
       const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
       token = tokenData?.data;
     } catch (e1) {
+      tokenError = e1?.message || String(e1);
+      // 2. Try default Expo Push Token
       try {
         const tokenData = await Notifications.getExpoPushTokenAsync();
         token = tokenData?.data;
       } catch (e2) {
-        console.warn('Expo push token fallback notice:', e2?.message || e2);
+        tokenError = e2?.message || String(e2);
+        // 3. Try Native Device FCM Push Token
+        try {
+          const deviceTokenData = await Notifications.getDevicePushTokenAsync();
+          token = deviceTokenData?.data;
+        } catch (e3) {
+          tokenError = e3?.message || String(e3);
+          console.warn('Native device push token notice:', e3?.message || e3);
+        }
       }
     }
+
     console.log('📲 [Device Push Token Acquired]:', token);
 
     // Sync token with backend user document via both routes
@@ -77,11 +90,12 @@ export async function registerForPushNotificationsAsync() {
         console.warn('Notifications register-device sync error:', e?.message);
       }
       console.log('✅ Push token synced with backend!');
+      return { success: true, token };
     }
 
-    return token;
+    return { success: false, error: tokenError || 'Unable to generate device token.' };
   } catch (error) {
     console.warn('Push notification registration warning:', error?.message || error);
-    return null;
+    return { success: false, error: error?.message || String(error) };
   }
 }

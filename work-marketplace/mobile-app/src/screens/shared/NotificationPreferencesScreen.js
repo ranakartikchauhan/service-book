@@ -165,12 +165,15 @@ export default function NotificationPreferencesScreen() {
             onPress={async () => {
               try {
                 const { registerForPushNotificationsAsync } = require('../../utils/notifications');
-                const token = await registerForPushNotificationsAsync();
+                const res = await registerForPushNotificationsAsync();
+                const token = typeof res === 'string' ? res : res?.token;
                 if (token) {
                   Alert.alert(
                     '✅ Push Notifications Active!',
                     `Your device is registered to receive live alerts.\n\nToken:\n${token.slice(0, 35)}...`
                   );
+                } else if (res?.error) {
+                  Alert.alert('Push Registration Diagnostic', res.error);
                 } else {
                   Alert.alert(
                     '⚠️ Notifications Disabled in OS',
