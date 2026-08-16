@@ -263,21 +263,24 @@ router.patch('/:id/start', async (req, res, next) => {
   }
 });
 
-// ─── MARK JOB AS COMPLETED (poster confirms) ─────────────────────────────────
+// ─── MARK JOB AS COMPLETED (poster or assigned worker) ────────────────────────
 // PATCH /api/jobs/:id/complete
 router.patch('/:id/complete', async (req, res, next) => {
   try {
-    const job = await Job.findOne({ _id: req.params.id, posterId: req.user._id });
-    if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
+    const job = await Job.findOne({
+      _id: req.params.id,
+      $or: [{ posterId: req.user._id }, { assignedWorkerId: req.user._id }],
+    });
+    if (!job) return res.status(404).json({ success: false, message: 'Job not found or not assigned to you' });
 
-    if (job.status !== JOB_STATUS.IN_PROGRESS) {
-      return res.status(400).json({ success: false, message: 'Job must be in progress to mark complete' });
+    if (job.status !== JOB_STATUS.IN_PROGRESS && job.status !== JOB_STATUS.ASSIGNED) {
+      return res.status(400).json({ success: false, message: 'Job must be active or in progress to mark complete' });
     }
 
     job.status = JOB_STATUS.COMPLETED;
     await job.save();
 
-    // Release payment to worker
+    // Release payment to worker if in escrow
     const transaction = await Transaction.findOne({ jobId: job._id });
     if (transaction && transaction.status === TRANSACTION_STATUS.HELD_IN_ESCROW) {
       const { createPayout } = require('../services/razorpayService');
@@ -300,13 +303,27 @@ router.patch('/:id/complete', async (req, res, next) => {
         { userId: job.assignedWorkerId },
         { $inc: { earningsTotal: transaction.workerPayout, completedJobs: 1 } }
       );
-
-      // Notify worker
-      const worker = await User.findById(job.assignedWorkerId);
-      if (worker?.fcmToken) notifyJobCompleted(worker.fcmToken, job.title);
+    } else {
+      // Increment completedJobs counter
+      if (job.assignedWorkerId) {
+        await WorkerProfile.findOneAndUpdate(
+          { userId: job.assignedWorkerId },
+          { $inc: { completedJobs: 1 } }
+        );
+      }
     }
 
-    res.json({ success: true, message: 'Job marked as complete. Payment released to worker.' });
+    // Send notifications to the other party
+    const isPoster = job.posterId?.toString() === req.user._id?.toString();
+    const otherUserId = isPoster ? job.assignedWorkerId : job.posterId;
+    if (otherUserId) {
+      const otherUser = await User.findById(otherUserId);
+      if (otherUser?.fcmToken) {
+        notifyJobCompleted(otherUser.fcmToken, job.title);
+      }
+    }
+
+    res.json({ success: true, message: 'Job marked as completed successfully!' });
   } catch (error) {
     next(error);
   }

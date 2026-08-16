@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, RefreshControl, SafeAreaView,
+  ActivityIndicator, RefreshControl, SafeAreaView, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
@@ -29,6 +29,28 @@ export default function MyApplicationsScreen({ navigation }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCompleteJob = (job) => {
+    Alert.alert(
+      'Mark as Completed?',
+      `Are you sure you have finished all work for "${job.title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, Complete',
+          onPress: async () => {
+            try {
+              await api.patch(`/jobs/${job._id}/complete`);
+              Alert.alert('🎉 Job Completed!', 'Great job! The client has been notified.');
+              fetchApplications();
+            } catch (err) {
+              Alert.alert('Error', err.response?.data?.message || 'Failed to complete job.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   useEffect(() => {
@@ -93,14 +115,32 @@ export default function MyApplicationsScreen({ navigation }) {
         ) : null}
 
         {item.status === 'accepted' && (
-          <TouchableOpacity
-            style={styles.chatActionBtn}
-            onPress={() => navigation.navigate('Chat', { jobId: job._id, name: job.title })}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="chatbubbles" size={16} color="#FFFFFF" />
-            <Text style={styles.chatActionBtnText}>Chat with Client</Text>
-          </TouchableOpacity>
+          <View style={{ marginTop: 12, gap: 8 }}>
+            <TouchableOpacity
+              style={styles.chatActionBtn}
+              onPress={() => navigation.navigate('Chat', { jobId: job._id, name: job.title })}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="chatbubbles" size={16} color="#FFFFFF" />
+              <Text style={styles.chatActionBtnText}>Chat with Client</Text>
+            </TouchableOpacity>
+
+            {job.status !== 'completed' ? (
+              <TouchableOpacity
+                style={styles.completeActionBtn}
+                onPress={() => handleCompleteJob(job)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="checkmark-done-circle" size={16} color="#FFFFFF" />
+                <Text style={styles.completeActionBtnText}>Mark Job Completed</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.completedBanner}>
+                <Ionicons name="checkmark-circle" size={15} color={COLORS.success} />
+                <Text style={styles.completedBannerText}>Job Successfully Completed</Text>
+              </View>
+            )}
+          </View>
         )}
       </TouchableOpacity>
     );
@@ -232,9 +272,32 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingVertical: 12,
     borderRadius: 12,
-    marginTop: 12,
   },
   chatActionBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+
+  completeActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.success,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  completeActionBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+
+  completedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(34, 197, 94, 0.12)',
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.success,
+  },
+  completedBannerText: { color: COLORS.success, fontSize: 12, fontWeight: '800' },
 
   emptyContainer: { flex: 1 },
   emptyState: { alignItems: 'center', paddingTop: 100, paddingHorizontal: 24 },
