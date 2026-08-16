@@ -25,7 +25,10 @@
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
       ],
       "usesCleartextTraffic": true
     },
@@ -34,6 +37,13 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "WorkMarket uses your location to discover and match local service jobs near you."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#6366F1"
         }
       ]
     ],
