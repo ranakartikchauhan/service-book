@@ -132,6 +132,8 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // ─── Start server for local development or traditional host ──────────────────
+const { initMediaCleanupCron } = require('./services/mediaCleanupCron');
+
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   connectDB()
@@ -141,8 +143,12 @@ if (!process.env.VERCEL) {
         console.log(`\n🚀 Work Marketplace API running on port ${PORT}`);
         console.log(`   Environment: ${process.env.NODE_ENV}`);
         console.log(`   Health check: http://localhost:${PORT}/api/health\n`);
+        initMediaCleanupCron();
       });
     });
+} else {
+  // In serverless environments, initialize cron listeners
+  initMediaCleanupCron();
 }
 
 module.exports = { app, server };

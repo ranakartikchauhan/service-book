@@ -27,6 +27,10 @@ const privateStorage = new CloudinaryStorage({
     folder: 'work-marketplace/private/id-docs',
     allowed_formats: ['jpg', 'jpeg', 'png', 'pdf'],
     access_mode: 'authenticated', // restricts public access
+    resource_type: 'auto',
+  },
+});
+
 // ─── AUDIO UPLOADS (voice notes) ───────────────────────────────────────────
 const audioStorage = new CloudinaryStorage({
   cloudinary,
@@ -62,14 +66,38 @@ const getSignedUrl = (publicId, expiresInSeconds = 300) => {
   });
 };
 
-// Delete a file from Cloudinary (e.g., when a user updates their profile photo)
+// Delete a file from Cloudinary by publicId
 const deleteFile = async (publicId, resourceType = 'image') => {
   try {
     await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
   } catch (error) {
     console.error('Cloudinary delete error:', error);
-    // Non-fatal — log and continue
   }
 };
 
-module.exports = { uploadPublic, uploadPrivate, uploadAudio, getSignedUrl, deleteFile };
+// Delete a file from Cloudinary by full media URL (automatic publicId extraction & type detection)
+const deleteMediaByUrl = async (url) => {
+  if (!url || typeof url !== 'string' || !url.includes('cloudinary.com')) return;
+
+  try {
+    const isAudioOrVideo = url.includes('/video/') || url.match(/\.(mp3|m4a|aac|wav|ogg|3gp|mp4)$/i);
+    const resourceType = isAudioOrVideo ? 'video' : 'image';
+
+    const uploadIdx = url.indexOf('/upload/');
+    if (uploadIdx === -1) return;
+
+    let pathAfterUpload = url.substring(uploadIdx + 8);
+    pathAfterUpload = pathAfterUpload.replace(/^v\d+\//, '');
+
+    const lastDotIdx = pathAfterUpload.lastIndexOf('.');
+    const publicId = lastDotIdx !== -1 ? pathAfterUpload.substring(0, lastDotIdx) : pathAfterUpload;
+
+    const res = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+    console.log(`[Cloudinary Cleanup] Deleted ${resourceType} (${publicId}):`, res?.result || 'ok');
+    return res;
+  } catch (err) {
+    console.error(`[Cloudinary Cleanup Error] Failed to delete ${url}:`, err.message);
+  }
+};
+
+module.exports = { uploadPublic, uploadPrivate, uploadAudio, getSignedUrl, deleteFile, deleteMediaByUrl };
