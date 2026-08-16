@@ -18,9 +18,23 @@ const CATEGORIES_CONFIG = [
   { key: 'marketing', label: 'Promotions & Platform News', desc: 'Occasional product updates and bonus earning opportunities' },
 ];
 
+const DEFAULT_PREFERENCES = {
+  categories: {
+    newMatchingJob: 'instant',
+    applicationUpdates: 'instant',
+    messages: 'instant',
+    paymentUpdates: 'instant',
+    jobReminders: 'instant',
+    noApplicantsNudge: 'instant',
+    subscriptionBilling: 'instant',
+    marketing: 'off',
+  },
+  quietHours: { enabled: false },
+};
+
 export default function NotificationPreferencesScreen() {
   const { t } = useTranslation();
-  const [preferences, setPreferences] = useState(null);
+  const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -28,7 +42,20 @@ export default function NotificationPreferencesScreen() {
     const loadPreferences = async () => {
       try {
         const { data } = await api.get('/notifications/preferences');
-        setPreferences(data.data.preferences);
+        if (data?.data?.preferences) {
+          setPreferences((prev) => ({
+            ...prev,
+            ...data.data.preferences,
+            categories: {
+              ...prev.categories,
+              ...(data.data.preferences.categories || {}),
+            },
+            quietHours: {
+              ...prev.quietHours,
+              ...(data.data.preferences.quietHours || {}),
+            },
+          }));
+        }
       } catch (err) {
         console.error('Error loading preferences:', err);
       } finally {
@@ -42,7 +69,7 @@ export default function NotificationPreferencesScreen() {
     setPreferences((prev) => ({
       ...prev,
       categories: {
-        ...prev.categories,
+        ...(prev?.categories || {}),
         [categoryKey]: value ? 'instant' : 'off',
       },
     }));
@@ -52,7 +79,7 @@ export default function NotificationPreferencesScreen() {
     setPreferences((prev) => ({
       ...prev,
       quietHours: {
-        ...prev.quietHours,
+        ...(prev?.quietHours || {}),
         enabled: value,
       },
     }));
@@ -69,14 +96,6 @@ export default function NotificationPreferencesScreen() {
       setSaving(false);
     }
   };
-
-  if (loading || !preferences) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6366f1" />
-      </View>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
