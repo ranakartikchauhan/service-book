@@ -149,7 +149,7 @@ export default function ActiveJobScreen({ navigation, route }) {
             </View>
             <TouchableOpacity
               style={styles.chatBtn}
-              onPress={() => navigation.navigate('Chat', { recipientId: worker._id, name: worker.name })}
+              onPress={() => navigation.navigate('Chat', { jobId, recipientId: worker._id, name: worker.name })}
               activeOpacity={0.8}
             >
               <Ionicons name="chatbubbles-outline" size={16} color="#FFFFFF" />

@@ -111,7 +111,7 @@ export default function ApplicantsScreen({ navigation, route }) {
         <View style={styles.footerRow}>
           <TouchableOpacity
             style={styles.chatBtn}
-            onPress={() => navigation.navigate('Chat', { recipientId: worker._id, name: worker.name })}
+            onPress={() => navigation.navigate('Chat', { jobId, recipientId: worker._id, name: worker.name })}
           >
             <Ionicons name="chatbubbles-outline" size={15} color={COLORS.primaryLight} />
             <Text style={styles.chatBtnTxt}>Chat</Text>

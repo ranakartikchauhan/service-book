@@ -97,17 +97,24 @@ export default function ChatScreen({ route }) {
   };
 
   const renderMessage = ({ item }) => {
-    const isMe = item.senderId?._id === user?._id || item.senderId === user?._id;
+    const senderId = (item.senderId?._id || item.senderId)?.toString();
+    const myId = (user?._id || user?.id)?.toString();
+    const isMe = Boolean(senderId && myId && senderId === myId);
 
     return (
       <View style={[styles.msgRow, isMe ? styles.msgRowMe : styles.msgRowOther]}>
         <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleOther, SHADOWS.small]}>
+          {!isMe && item.senderId?.name ? (
+            <Text style={{ fontSize: 11, fontWeight: '700', color: COLORS.primaryLight, marginBottom: 2 }}>
+              {item.senderId.name}
+            </Text>
+          ) : null}
           <Text style={[styles.msgText, isMe ? styles.msgTextMe : styles.msgTextOther]}>
             {item.text}
           </Text>
           <View style={styles.msgFooter}>
             <Text style={[styles.timeText, isMe ? styles.timeTextMe : styles.timeTextOther]}>
-              {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {new Date(item.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
             {isMe && (
               <Ionicons
