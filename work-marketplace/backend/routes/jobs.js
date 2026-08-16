@@ -6,7 +6,7 @@ const Transaction = require('../models/Transaction');
 const PlatformConfig = require('../models/PlatformConfig');
 const User = require('../models/User');
 const verifyUserToken = require('../middleware/verifyUserToken');
-const { uploadPublic } = require('../services/cloudinaryService');
+const { uploadPublic, uploadAudio } = require('../services/cloudinaryService');
 const Category = require('../models/Category');
 const { JOB_STATUS, APPLICATION_STATUS, TRANSACTION_STATUS, VERIFICATION_STATUS, DEFAULT_CATEGORIES } = require('../config/constants');
 const {
@@ -41,20 +41,83 @@ router.get('/categories', async (req, res, next) => {
 
 router.use(verifyUserToken);
 
+// ─── UPLOAD VOICE NOTE AUDIO (poster) ─────────────────────────────────────────
+// POST /api/jobs/upload-voice
+router.post('/upload-voice', uploadAudio.single('voice'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No voice audio file uploaded' });
+    }
+    const durationSec = req.body.durationSec ? parseInt(req.body.durationSec) : 0;
+    res.json({
+      success: true,
+      data: {
+        voiceNoteUrl: req.file.path,
+        durationSec,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─── UPLOAD JOB WORK PHOTO (poster) ───────────────────────────────────────────
+// POST /api/jobs/upload-photo
+router.post('/upload-photo', uploadPublic.single('photo'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No photo uploaded' });
+    }
+    res.json({
+      success: true,
+      data: {
+        photoUrl: req.file.path,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ─── CREATE JOB (poster) ──────────────────────────────────────────────────────
 // POST /api/jobs
 router.post('/', uploadPublic.array('photos', 5), checkPosterJobPostLimit, async (req, res, next) => {
   try {
     const {
       category, title, description, longitude, latitude, addressText,
-      scheduledDate, budgetType, budgetAmount, estimatedDurationHours, isUrgent
+      scheduledDate, budgetType, budgetAmount, estimatedDurationHours, isUrgent,
+      voiceNote, photos: bodyPhotos,
     } = req.body;
 
     if (!category || !title || !description || !longitude || !latitude || !scheduledDate || !budgetAmount) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
-    const photos = req.files?.map((f) => f.path) || [];
+    let photos = req.files?.map((f) => f.path) || [];
+    if (photos.length === 0 && bodyPhotos) {
+      if (Array.isArray(bodyPhotos)) {
+        photos = bodyPhotos;
+      } else if (typeof bodyPhotos === 'string') {
+        try {
+          photos = JSON.parse(bodyPhotos);
+        } catch {
+          photos = [bodyPhotos];
+        }
+      }
+    }
+
+    let parsedVoiceNote = undefined;
+    if (voiceNote) {
+      if (typeof voiceNote === 'string') {
+        try {
+          parsedVoiceNote = JSON.parse(voiceNote);
+        } catch {
+          parsedVoiceNote = { url: voiceNote, durationSec: 0 };
+        }
+      } else if (typeof voiceNote === 'object') {
+        parsedVoiceNote = voiceNote;
+      }
+    }
 
     const job = await Job.create({
       posterId: req.user._id,
@@ -71,6 +134,7 @@ router.post('/', uploadPublic.array('photos', 5), checkPosterJobPostLimit, async
       budgetAmount: parseFloat(budgetAmount),
       estimatedDurationHours: estimatedDurationHours ? parseFloat(estimatedDurationHours) : undefined,
       photos,
+      voiceNote: parsedVoiceNote,
       isUrgent: isUrgent === 'true' || isUrgent === true,
     });
 

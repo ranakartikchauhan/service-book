@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
+  ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../api/client';
 import { getDeviceLocation, getAddressFromCoords, getCoordsFromAddress } from '../../utils/location';
 import { COLORS, SHADOWS } from '../../theme';
+import VoiceNoteRecorder from '../../components/VoiceNoteRecorder';
 
 const CATEGORY_ICON_MAP = {
   Cleaning: 'broom',
@@ -23,6 +25,8 @@ export default function PostJobScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [coords, setCoords] = useState(null); // { longitude, latitude }
+  const [photos, setPhotos] = useState([]); // local photo URIs
+  const [voiceNote, setVoiceNote] = useState(null); // { uri, durationSec }
 
   const [form, setForm] = useState({
     title: '',
@@ -34,6 +38,53 @@ export default function PostJobScreen({ navigation }) {
     scheduledDate: new Date().toISOString().split('T')[0],
     isUrgent: false,
   });
+
+  const handlePickPhotos = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to your photos to attach work area images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets) {
+        const newUris = result.assets.map((a) => a.uri);
+        setPhotos((prev) => [...prev, ...newUris].slice(0, 5));
+      }
+    } catch (err) {
+      console.warn('Error picking photos:', err);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow camera access to take photos of your work area.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets?.[0]) {
+        setPhotos((prev) => [...prev, result.assets[0].uri].slice(0, 5));
+      }
+    } catch (err) {
+      console.warn('Error taking photo:', err);
+    }
+  };
+
+  const handleRemovePhoto = (index) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const detectLocation = async (showAlert = true) => {
     setDetectingLocation(true);
@@ -108,16 +159,64 @@ export default function PostJobScreen({ navigation }) {
         finalCoords = { longitude: 77.2090, latitude: 28.6139 };
       }
 
+      // Upload Work Photos (if any selected)
+      let uploadedPhotoUrls = [];
+      if (photos.length > 0) {
+        for (const photoUri of photos) {
+          try {
+            const formData = new FormData();
+            const filename = photoUri.split('/').pop() || 'photo.jpg';
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `image/${match[1]}` : 'image/jpeg';
+            formData.append('photo', { uri: photoUri, name: filename, type });
+
+            const uploadRes = await api.post('/jobs/upload-photo', formData, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            if (uploadRes.data?.data?.photoUrl) {
+              uploadedPhotoUrls.push(uploadRes.data.data.photoUrl);
+            }
+          } catch (uploadErr) {
+            console.warn('Photo upload warning:', uploadErr?.message);
+          }
+        }
+      }
+
+      // Upload Voice Note (if recorded)
+      let uploadedVoiceNote = undefined;
+      if (voiceNote?.uri) {
+        try {
+          const formData = new FormData();
+          const filename = voiceNote.uri.split('/').pop() || 'voice.m4a';
+          formData.append('voice', { uri: voiceNote.uri, name: filename, type: 'audio/m4a' });
+          formData.append('durationSec', String(voiceNote.durationSec || 0));
+
+          const voiceRes = await api.post('/jobs/upload-voice', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          if (voiceRes.data?.data?.voiceNoteUrl) {
+            uploadedVoiceNote = {
+              url: voiceRes.data.data.voiceNoteUrl,
+              durationSec: voiceNote.durationSec || 0,
+            };
+          }
+        } catch (voiceErr) {
+          console.warn('Voice upload warning:', voiceErr?.message);
+        }
+      }
+
       const payload = {
         ...form,
         longitude: finalCoords.longitude,
         latitude: finalCoords.latitude,
         budgetAmount: parseFloat(form.budgetAmount),
         scheduledDate: new Date(form.scheduledDate),
+        photos: uploadedPhotoUrls,
+        voiceNote: uploadedVoiceNote,
       };
 
       await api.post('/jobs', payload);
-      Alert.alert('Success 🎉', 'Your service request is posted! Nearby workers can now view and apply.', [
+      Alert.alert('Success 🎉', 'Your service request is posted! Nearby workers can now view and listen to instructions.', [
         { text: 'View My Jobs', onPress: () => navigation.navigate('MyJobs') }
       ]);
       setForm({
@@ -130,6 +229,8 @@ export default function PostJobScreen({ navigation }) {
         scheduledDate: new Date().toISOString().split('T')[0],
         isUrgent: false,
       });
+      setPhotos([]);
+      setVoiceNote(null);
     } catch (err) {
       Alert.alert('Error', err.response?.data?.message || 'Failed to post job. Please try again.');
     } finally {
@@ -210,6 +311,50 @@ export default function PostJobScreen({ navigation }) {
               value={form.description}
               onChangeText={(v) => setForm({ ...form, description: v })}
             />
+          </View>
+
+          {/* VOICE INSTRUCTIONS FOR WORKERS */}
+          <VoiceNoteRecorder
+            onAudioRecorded={(audio) => setVoiceNote(audio)}
+            initialAudio={voiceNote}
+            onRemoveAudio={() => setVoiceNote(null)}
+          />
+
+          {/* WORK AREA PHOTOS (ROOM, SOFA, KITCHEN, ETC.) */}
+          <View style={styles.inputGroup}>
+            <View style={styles.labelRow}>
+              <Ionicons name="images-outline" size={14} color={COLORS.textSecondary} />
+              <Text style={styles.label}>Work Area Photos (Room, Sofa, Kitchen, etc.)</Text>
+            </View>
+            <Text style={styles.fieldHelper}>
+              Attach up to 5 photos so workers can see the exact condition, room size, or items before applying.
+            </Text>
+
+            <View style={styles.photoActionRow}>
+              <TouchableOpacity style={styles.photoPickBtn} onPress={handleTakePhoto} activeOpacity={0.8}>
+                <Ionicons name="camera" size={16} color="#FFFFFF" />
+                <Text style={styles.photoPickBtnTxt}>Take Photo</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.photoPickBtnSecondary} onPress={handlePickPhotos} activeOpacity={0.8}>
+                <Ionicons name="image" size={16} color={COLORS.primaryLight} />
+                <Text style={styles.photoPickBtnSecondaryTxt}>From Gallery</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* THUMBNAIL PREVIEWS */}
+            {photos.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoPreviewScroll}>
+                {photos.map((uri, idx) => (
+                  <View key={idx} style={styles.photoPreviewThumbWrap}>
+                    <Image source={{ uri }} style={styles.photoPreviewThumb} />
+                    <TouchableOpacity style={styles.photoDeleteBadge} onPress={() => handleRemovePhoto(idx)}>
+                      <Ionicons name="close" size={12} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
           </View>
 
           {/* HOME LOCATION SHARING */}
@@ -503,4 +648,75 @@ const styles = StyleSheet.create({
   },
   submitBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900', letterSpacing: 0.5 },
   btnDisabled: { opacity: 0.6 },
+
+  fieldHelper: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    lineHeight: 16,
+    marginBottom: 8,
+  },
+  photoActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  photoPickBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    paddingVertical: 10,
+  },
+  photoPickBtnTxt: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  photoPickBtnSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 10,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: COLORS.primaryLight,
+  },
+  photoPickBtnSecondaryTxt: {
+    color: COLORS.primaryLight,
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  photoPreviewScroll: {
+    marginTop: 10,
+  },
+  photoPreviewThumbWrap: {
+    position: 'relative',
+    marginRight: 10,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorderLight,
+  },
+  photoPreviewThumb: {
+    width: 76,
+    height: 76,
+    borderRadius: 10,
+  },
+  photoDeleteBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(239, 68, 68, 0.85)',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

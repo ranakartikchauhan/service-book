@@ -62,6 +62,11 @@ const jobSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    // Voice instructions recorded by poster for non-literate workers
+    voiceNote: {
+      url: { type: String, default: null },
+      durationSec: { type: Number, default: 0 },
+    },
     status: {
       type: String,
       enum: Object.values(JOB_STATUS),

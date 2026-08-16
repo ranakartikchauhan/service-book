@@ -14,7 +14,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.workmarket.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "WorkMarket uses your location to discover and match local service jobs near you."
+        "NSLocationWhenInUseUsageDescription": "WorkMarket uses your location to discover and match local service jobs near you.",
+        "NSMicrophoneUsageDescription": "WorkMarket uses the microphone so you can record voice instructions for workers.",
+        "NSCameraUsageDescription": "WorkMarket uses the camera so you can take photos of the work area.",
+        "NSPhotoLibraryUsageDescription": "WorkMarket needs access to your photos so you can attach work area images."
       }
     },
     "android": {
@@ -28,7 +31,9 @@
         "ACCESS_FINE_LOCATION",
         "POST_NOTIFICATIONS",
         "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "RECORD_AUDIO",
+        "CAMERA"
       ],
       "usesCleartextTraffic": true
     },

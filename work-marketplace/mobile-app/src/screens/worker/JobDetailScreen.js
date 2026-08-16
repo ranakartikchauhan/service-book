@@ -7,6 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import { COLORS, SHADOWS } from '../../theme';
+import VoiceNotePlayer from '../../components/VoiceNotePlayer';
+import WorkPhotosGallery from '../../components/WorkPhotosGallery';
 
 export default function JobDetailScreen({ navigation, route }) {
   const { jobId } = route.params || {};
@@ -113,6 +115,20 @@ export default function JobDetailScreen({ navigation, route }) {
             <Text style={styles.addressText}>{job.location?.addressText || 'Nearby location'}</Text>
           </View>
         </View>
+
+        {/* VOICE INSTRUCTIONS PLAYER */}
+        {job.voiceNote?.url && (
+          <VoiceNotePlayer
+            url={job.voiceNote.url}
+            durationSec={job.voiceNote.durationSec}
+            title="Listen to Client Voice Instructions"
+          />
+        )}
+
+        {/* WORK AREA PHOTOS GALLERY */}
+        {job.photos && job.photos.length > 0 && (
+          <WorkPhotosGallery photos={job.photos} />
+        )}
 
         {/* DESCRIPTION */}
         <View style={[styles.card, SHADOWS.small]}>

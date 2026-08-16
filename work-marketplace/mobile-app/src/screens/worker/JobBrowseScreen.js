@@ -155,6 +155,26 @@ export default function JobBrowseScreen({ navigation }) {
 
         <Text style={styles.jobDesc} numberOfLines={2}>{item.description}</Text>
 
+        {/* MEDIA BADGES (VOICE NOTE & PHOTOS) */}
+        {(item.voiceNote?.url || (item.photos && item.photos.length > 0)) && (
+          <View style={styles.mediaBadgesRow}>
+            {item.voiceNote?.url && (
+              <View style={styles.voiceNotePill}>
+                <Ionicons name="mic" size={12} color={COLORS.primaryLight} />
+                <Text style={styles.voiceNotePillText}>
+                  {item.voiceNote.durationSec > 0 ? `Voice Note (${item.voiceNote.durationSec}s)` : 'Voice Note'}
+                </Text>
+              </View>
+            )}
+            {item.photos && item.photos.length > 0 && (
+              <View style={styles.photosPill}>
+                <Ionicons name="images" size={12} color={COLORS.success} />
+                <Text style={styles.photosPillText}>{item.photos.length} {item.photos.length === 1 ? 'Work Photo' : 'Work Photos'}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
         <View style={styles.jobFooter}>
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryText}>{item.category?.name || 'Service'}</Text>
@@ -520,7 +540,45 @@ const styles = StyleSheet.create({
   budgetPillCurrency: { fontSize: 11, fontWeight: '700', color: COLORS.primaryLight, marginRight: 2 },
   budgetPillAmount: { fontSize: 15, fontWeight: '900', color: COLORS.textPrimary },
 
-  jobDesc: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 19, marginBottom: 12 },
+  jobDesc: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 19, marginBottom: 8 },
+  mediaBadgesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  voiceNotePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.3)',
+  },
+  voiceNotePillText: {
+    color: COLORS.primaryLight,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  photosPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+  },
+  photosPillText: {
+    color: COLORS.success,
+    fontSize: 11,
+    fontWeight: '800',
+  },
   jobFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: COLORS.surfaceBorder, paddingTop: 10 },
   categoryBadge: {
     backgroundColor: 'rgba(99, 102, 241, 0.12)',

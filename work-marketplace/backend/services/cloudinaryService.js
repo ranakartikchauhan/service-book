@@ -27,7 +27,13 @@ const privateStorage = new CloudinaryStorage({
     folder: 'work-marketplace/private/id-docs',
     allowed_formats: ['jpg', 'jpeg', 'png', 'pdf'],
     access_mode: 'authenticated', // restricts public access
+// ─── AUDIO UPLOADS (voice notes) ───────────────────────────────────────────
+const audioStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'work-marketplace/voice-notes',
     resource_type: 'auto',
+    allowed_formats: ['mp3', 'm4a', 'aac', 'wav', 'ogg', '3gp', 'mp4'],
   },
 });
 
@@ -40,6 +46,11 @@ const uploadPublic = multer({
 const uploadPrivate = multer({
   storage: privateStorage,
   limits: { fileSize: 15 * 1024 * 1024 }, // 15MB max (PDF IDs can be larger)
+});
+
+const uploadAudio = multer({
+  storage: audioStorage,
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB max
 });
 
 // Generate a time-limited signed URL for viewing a private doc (admin use only)
@@ -61,4 +72,4 @@ const deleteFile = async (publicId, resourceType = 'image') => {
   }
 };
 
-module.exports = { uploadPublic, uploadPrivate, getSignedUrl, deleteFile };
+module.exports = { uploadPublic, uploadPrivate, uploadAudio, getSignedUrl, deleteFile };
