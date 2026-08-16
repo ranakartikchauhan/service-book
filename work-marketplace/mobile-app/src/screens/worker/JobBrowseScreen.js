@@ -8,6 +8,7 @@ import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import api from '../../api/client';
 import { getDeviceLocation } from '../../utils/location';
 import { COLORS, SHADOWS } from '../../theme';
+import TrainingOnboardingModal from '../../components/TrainingOnboardingModal';
 
 const STATUS_COLOR = { open: COLORS.success, assigned: COLORS.warning, in_progress: COLORS.primary };
 const RADIUS_OPTIONS = [1, 5, 10, 25];
@@ -205,6 +206,8 @@ export default function JobBrowseScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <TrainingOnboardingModal navigation={navigation} />
+
       {/* "AVAILABLE NOW" LIVE STATUS BAR */}
       <View style={[styles.availabilityBar, isAvailableNow && styles.availabilityBarActive]}>
         <View style={{ flex: 1 }}>

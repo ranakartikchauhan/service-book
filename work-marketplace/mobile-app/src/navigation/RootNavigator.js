@@ -34,6 +34,8 @@ import SubscriptionScreen from '../screens/shared/SubscriptionScreen';
 import NotificationCenterScreen from '../screens/shared/NotificationCenterScreen';
 import NotificationPreferencesScreen from '../screens/shared/NotificationPreferencesScreen';
 import EmergencyContactScreen from '../screens/shared/EmergencyContactScreen';
+import ContactSupportScreen from '../screens/shared/ContactSupportScreen';
+import TrainingVideosScreen from '../screens/worker/TrainingVideosScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -194,6 +196,8 @@ function AppNavigator() {
       <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} options={{ title: 'Notifications' }} />
       <Stack.Screen name="NotificationPreferences" component={NotificationPreferencesScreen} options={{ title: 'Notification Settings' }} />
       <Stack.Screen name="EmergencyContact" component={EmergencyContactScreen} options={{ title: 'Emergency Contact' }} />
+      <Stack.Screen name="ContactSupport" component={ContactSupportScreen} options={{ title: 'Customer Support & Help' }} />
+      <Stack.Screen name="TrainingVideos" component={TrainingVideosScreen} options={{ title: 'Training & Academy' }} />
       <Stack.Screen name="WorkerVerification" component={WorkerVerificationScreen} options={{ title: 'ID Verification' }} />
       <Stack.Screen name="WorkerJobDetail" component={WorkerJobDetailScreen} options={{ title: 'Job Details' }} />
       <Stack.Screen name="PosterApplicants" component={PosterApplicantsScreen} options={{ title: 'Applicants' }} />

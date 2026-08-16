@@ -257,6 +257,38 @@ export default function SettingsScreen({ navigation }) {
         {user?.currentMode === 'worker' && (
           <TouchableOpacity
             style={styles.actionRow}
+            onPress={() => navigation.navigate('TrainingVideos')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.iconCircle}>
+              <Ionicons name="school-outline" size={20} color={COLORS.primaryLight} />
+            </View>
+            <View style={{ flex: 1, marginHorizontal: 12 }}>
+              <Text style={styles.actionTitle}>Training Videos (प्रशिक्षण)</Text>
+              <Text style={styles.actionSub}>Learn safety rules, customer skills & app features</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={styles.actionRow}
+          onPress={() => navigation.navigate('ContactSupport')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.iconCircle}>
+            <Ionicons name="headset-outline" size={20} color={COLORS.info} />
+          </View>
+          <View style={{ flex: 1, marginHorizontal: 12 }}>
+            <Text style={styles.actionTitle}>Customer Support & Help</Text>
+            <Text style={styles.actionSub}>WhatsApp chat, direct helpline & ticket support</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+        </TouchableOpacity>
+
+        {user?.currentMode === 'worker' && (
+          <TouchableOpacity
+            style={styles.actionRow}
             onPress={() => navigation.navigate('WorkerVerification')}
             activeOpacity={0.7}
           >

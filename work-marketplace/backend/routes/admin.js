@@ -561,4 +561,102 @@ router.post('/broadcast-notification', async (req, res, next) => {
   }
 });
 
+// ─── ADMIN TRAINING VIDEOS MANAGEMENT ─────────────────────────────────────────
+const TrainingVideo = require('../models/TrainingVideo');
+
+// GET /api/admin/training-videos
+router.get('/training-videos', async (req, res, next) => {
+  try {
+    const videos = await TrainingVideo.find().sort({ sortOrder: 1, createdAt: -1 });
+    res.json({ success: true, data: { videos } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/admin/training-videos
+router.post('/training-videos', async (req, res, next) => {
+  try {
+    const { title, description, videoUrl, thumbnailUrl, durationMinutes, language, category, sortOrder, active } = req.body;
+
+    if (!title || !videoUrl) {
+      return res.status(400).json({ success: false, message: 'Title and videoUrl are required' });
+    }
+
+    const video = await TrainingVideo.create({
+      title,
+      description,
+      videoUrl,
+      thumbnailUrl,
+      durationMinutes: durationMinutes || 3,
+      language: language || 'Hindi',
+      category: category || 'general',
+      sortOrder: sortOrder || 0,
+      active: active !== undefined ? active : true,
+    });
+
+    res.status(201).json({ success: true, message: 'Training video created', data: { video } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /api/admin/training-videos/:id
+router.put('/training-videos/:id', async (req, res, next) => {
+  try {
+    const video = await TrainingVideo.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!video) return res.status(404).json({ success: false, message: 'Video not found' });
+    res.json({ success: true, message: 'Training video updated', data: { video } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/admin/training-videos/:id
+router.delete('/training-videos/:id', async (req, res, next) => {
+  try {
+    const video = await TrainingVideo.findByIdAndDelete(req.params.id);
+    if (!video) return res.status(404).json({ success: false, message: 'Video not found' });
+    res.json({ success: true, message: 'Training video deleted' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─── ADMIN SUPPORT TICKETS MANAGEMENT ─────────────────────────────────────────
+const SupportTicket = require('../models/SupportTicket');
+
+// GET /api/admin/support-tickets
+router.get('/support-tickets', async (req, res, next) => {
+  try {
+    const { status } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+
+    const tickets = await SupportTicket.find(filter)
+      .populate('userId', 'name phone currentMode')
+      .sort({ createdAt: -1 });
+
+    res.json({ success: true, data: { tickets } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PATCH /api/admin/support-tickets/:id
+router.patch('/support-tickets/:id', async (req, res, next) => {
+  try {
+    const { status, adminNotes } = req.body;
+    const updates = {};
+    if (status) updates.status = status;
+    if (adminNotes !== undefined) updates.adminNotes = adminNotes;
+
+    const ticket = await SupportTicket.findByIdAndUpdate(req.params.id, updates, { new: true });
+    if (!ticket) return res.status(404).json({ success: false, message: 'Ticket not found' });
+    res.json({ success: true, message: 'Support ticket updated', data: { ticket } });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

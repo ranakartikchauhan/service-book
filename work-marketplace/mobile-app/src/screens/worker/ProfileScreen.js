@@ -205,6 +205,30 @@ export default function ProfileScreen({ navigation }) {
 
           <TouchableOpacity
             style={styles.actionRow}
+            onPress={() => navigation.navigate('TrainingVideos')}
+          >
+            <Ionicons name="school-outline" size={20} color={COLORS.primaryLight} />
+            <View style={{ flex: 1, marginHorizontal: 12 }}>
+              <Text style={styles.actionTitle}>Training & Academy (प्रशिक्षण)</Text>
+              <Text style={styles.actionSub}>Learn safety, customer service & earn 5 stars</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => navigation.navigate('ContactSupport')}
+          >
+            <Ionicons name="headset-outline" size={20} color={COLORS.info} />
+            <View style={{ flex: 1, marginHorizontal: 12 }}>
+              <Text style={styles.actionTitle}>Customer Support & Help</Text>
+              <Text style={styles.actionSub}>24/7 WhatsApp, Helpline, and Ticket support</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionRow}
             onPress={() => navigation.navigate('Settings')}
           >
             <Ionicons name="settings-outline" size={20} color={COLORS.primaryLight} />
