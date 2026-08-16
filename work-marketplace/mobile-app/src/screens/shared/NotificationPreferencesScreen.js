@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, Switch, StyleSheet, ScrollView,
-  TouchableOpacity, ActivityIndicator, Alert, SafeAreaView,
+  View, Text, StyleSheet, ScrollView, Switch,
+  TouchableOpacity, ActivityIndicator, Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../api/client';
 import { useTranslation } from '../../i18n';
 

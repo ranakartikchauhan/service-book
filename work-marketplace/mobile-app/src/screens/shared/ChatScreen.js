@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList,
+  KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import { getSocket, joinJobRoom, leaveJobRoom } from '../../api/socket';
