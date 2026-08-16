@@ -508,8 +508,43 @@ router.get('/revenue/breakdown', async (req, res, next) => {
         commissionRevenue: commissionStats[0]?.totalCommission || 0,
         grossJobVolume: commissionStats[0]?.totalGross || 0,
         subscriptionRevenue: subscriptionStats[0]?.totalSubscriptionRevenue || 0,
-        totalCombinedRevenue: (commissionStats[0]?.totalCommission || 0) + (subscriptionStats[0]?.totalSubscriptionRevenue || 0),
-      },
+// POST /api/admin/broadcast-notification
+router.post('/broadcast-notification', async (req, res, next) => {
+  try {
+    const { title, body, targetRole } = req.body;
+
+    if (!title || !body) {
+      return res.status(400).json({ success: false, message: 'Title and body are required' });
+    }
+
+    const filter = { fcmToken: { $ne: null, $exists: true } };
+    if (targetRole && ['worker', 'poster'].includes(targetRole)) {
+      filter.currentMode = targetRole;
+    }
+
+    const users = await User.find(filter).select('fcmToken name');
+    const tokens = users.map((u) => u.fcmToken).filter(Boolean);
+
+    if (tokens.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No registered device tokens found to send notifications to.',
+        sentCount: 0,
+      });
+    }
+
+    const { sendMulticast } = require('../services/fcmService');
+    await sendMulticast({
+      tokens,
+      title,
+      body,
+      data: { type: 'admin_broadcast', timestamp: Date.now().toString() },
+    });
+
+    res.json({
+      success: true,
+      message: `Notification broadcasted to ${tokens.length} active device(s)`,
+      sentCount: tokens.length,
     });
   } catch (error) {
     next(error);
