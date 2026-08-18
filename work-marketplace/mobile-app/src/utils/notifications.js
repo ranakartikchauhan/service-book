@@ -4,6 +4,19 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import api from '../api/client';
 
+// Configure foreground notification presentation safely at module level
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+} catch (handlerErr) {
+  console.warn('Notification handler init warning:', handlerErr?.message || handlerErr);
+}
+
 /**
  * Register device for push notifications and sync token with backend
  */
@@ -12,40 +25,42 @@ export async function registerForPushNotificationsAsync() {
     return { success: true, token: null, isWeb: true };
   }
 
+  if (!Device.isDevice) {
+    console.log('Push notifications require a physical device');
+    return { success: true, token: null, isSimulator: true };
+  }
+
   let token = null;
 
   try {
-    // Configure foreground notification presentation safely
-    try {
-      Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldShowAlert: true,
-          shouldPlaySound: true,
-          shouldSetBadge: true,
-        }),
-      });
-    } catch (handlerErr) {
-      console.warn('Notification handler init warning:', handlerErr?.message || handlerErr);
-    }
-
     // Set up Android notification channel
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'WorkMarket Alerts',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#6366F1',
-        sound: 'default',
-      });
+      try {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'WorkMarket Alerts',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#6366F1',
+          sound: 'default',
+        });
+      } catch (chanErr) {
+        console.warn('Notification channel setup warning:', chanErr?.message || chanErr);
+      }
     }
 
     // Check device permissions
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
+    let finalStatus = 'undetermined';
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      finalStatus = existingStatus;
 
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+    } catch (permErr) {
+      console.warn('Notification permission query warning:', permErr?.message || permErr);
+      return null;
     }
 
     if (finalStatus !== 'granted') {

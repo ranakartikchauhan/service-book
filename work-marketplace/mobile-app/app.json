@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0f172a"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.workmarket.app",
@@ -35,8 +30,7 @@
         "RECEIVE_BOOT_COMPLETED",
         "RECORD_AUDIO",
         "CAMERA"
-      ],
-      "usesCleartextTraffic": true
+      ]
     },
     "plugins": [
       [
@@ -52,7 +46,16 @@
           "cameraPermission": "WorkMarket needs access to your camera to take work photos."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0f172a"
+        }
+      ]
     ],
     "web": {
       "favicon": "./assets/favicon.png",
