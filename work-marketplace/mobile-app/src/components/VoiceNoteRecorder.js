@@ -1,129 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { Audio } from 'expo-av';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SHADOWS } from '../theme';
 
+/**
+ * VoiceNoteRecorder — stub component (audio recording coming soon)
+ * expo-av removed due to RN 0.86 incompatibility. This placeholder
+ * keeps the UI intact without crashing the app.
+ */
 export default function VoiceNoteRecorder({ onAudioRecorded, initialAudio = null, onRemoveAudio }) {
-  const [recording, setRecording] = useState(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const [recordedUri, setRecordedUri] = useState(initialAudio?.uri || null);
-  const [sound, setSound] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const timerRef = useRef(null);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (sound) sound.unloadAsync();
-    };
-  }, [sound]);
-
-  const startRecording = async () => {
-    try {
-      const permission = await Audio.requestPermissionsAsync();
-      if (permission.status !== 'granted') {
-        Alert.alert('Permission Denied', 'Please grant microphone access to record voice instructions.');
-        return;
-      }
-
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      const { recording: newRecording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-
-      setRecording(newRecording);
-      setIsRecording(true);
-      setRecordingDuration(0);
-
-      timerRef.current = setInterval(() => {
-        setRecordingDuration((prev) => prev + 1);
-      }, 1000);
-    } catch (err) {
-      console.error('Failed to start recording:', err);
-      Alert.alert('Recording Error', 'Unable to start recording.');
-    }
-  };
-
-  const stopRecording = async () => {
-    if (!recording) return;
-
-    try {
-      if (timerRef.current) clearInterval(timerRef.current);
-      setIsRecording(false);
-
-      await recording.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-      });
-
-      const uri = recording.getURI();
-      setRecordedUri(uri);
-      setRecording(null);
-
-      if (onAudioRecorded) {
-        onAudioRecorded({
-          uri,
-          durationSec: recordingDuration,
-        });
-      }
-    } catch (err) {
-      console.error('Failed to stop recording:', err);
-    }
-  };
-
-  const handlePlayPreview = async () => {
-    if (!recordedUri) return;
-
-    try {
-      if (sound) {
-        if (isPlaying) {
-          await sound.pauseAsync();
-          setIsPlaying(false);
-        } else {
-          await sound.playAsync();
-          setIsPlaying(true);
-        }
-      } else {
-        const { sound: newSound } = await Audio.Sound.createAsync(
-          { uri: recordedUri },
-          { shouldPlay: true }
-        );
-        setSound(newSound);
-        setIsPlaying(true);
-
-        newSound.setOnPlaybackStatusUpdate((status) => {
-          if (status.didJustFinish) {
-            setIsPlaying(false);
-          }
-        });
-      }
-    } catch (err) {
-      console.error('Playback preview error:', err);
-    }
-  };
-
-  const handleDelete = () => {
-    if (sound) {
-      sound.unloadAsync();
-      setSound(null);
-    }
-    setRecordedUri(null);
-    setRecordingDuration(0);
-    setIsPlaying(false);
-    if (onRemoveAudio) onRemoveAudio();
-  };
-
-  const formatSeconds = (sec) => {
-    const mins = Math.floor(sec / 60);
-    const remainingSecs = sec % 60;
-    return `${mins}:${remainingSecs < 10 ? '0' : ''}${remainingSecs}`;
+  const handlePress = () => {
+    Alert.alert(
+      'Voice Notes — Coming Soon',
+      'Audio recording will be available in the next update.',
+      [{ text: 'OK' }]
+    );
   };
 
   return (
@@ -140,47 +31,12 @@ export default function VoiceNoteRecorder({ onAudioRecorded, initialAudio = null
         Workers who cannot read easily can listen to your voice note to understand the exact work requirements.
       </Text>
 
-      {/* RECORDING / PLAYER STATE */}
-      {!recordedUri ? (
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={[styles.recordBtn, isRecording && styles.recordBtnActive]}
-            onPress={isRecording ? stopRecording : startRecording}
-            activeOpacity={0.8}
-          >
-            <Ionicons name={isRecording ? 'stop' : 'mic'} size={24} color="#FFFFFF" />
-            <Text style={styles.recordBtnText}>
-              {isRecording ? 'Stop Recording' : 'Record Voice Note'}
-            </Text>
-          </TouchableOpacity>
+      <TouchableOpacity style={styles.recordBtn} onPress={handlePress} activeOpacity={0.8}>
+        <Ionicons name="mic-outline" size={22} color="#FFFFFF" />
+        <Text style={styles.recordBtnText}>Record Voice Note</Text>
+      </TouchableOpacity>
 
-          {isRecording && (
-            <View style={styles.recordingTimerBox}>
-              <View style={styles.pulseDot} />
-              <Text style={styles.timerText}>{formatSeconds(recordingDuration)}</Text>
-            </View>
-          )}
-        </View>
-      ) : (
-        <View style={styles.previewBox}>
-          <View style={styles.previewLeft}>
-            <TouchableOpacity style={styles.playBtn} onPress={handlePlayPreview}>
-              <Ionicons name={isPlaying ? 'pause' : 'play'} size={18} color="#FFFFFF" />
-            </TouchableOpacity>
-            <View>
-              <Text style={styles.previewTitle}>Voice Note Ready</Text>
-              <Text style={styles.previewDuration}>
-                {recordingDuration > 0 ? `${formatSeconds(recordingDuration)} duration` : 'Recorded Audio'}
-              </Text>
-            </View>
-          </View>
-
-          <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-            <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
-            <Text style={styles.deleteText}>Delete</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <Text style={styles.comingSoon}>🎤 Feature coming soon</Text>
     </View>
   );
 }
@@ -216,92 +72,25 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginBottom: 14,
   },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
   recordBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#334155',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-  },
-  recordBtnActive: {
-    backgroundColor: '#ef4444',
+    alignSelf: 'flex-start',
   },
   recordBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 13,
-  },
-  recordingTimerBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ef4444',
-  },
-  pulseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ef4444',
-  },
-  timerText: {
-    color: '#f8fafc',
-    fontWeight: '800',
-    fontSize: 13,
-  },
-  previewBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#0f172a',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  previewLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  playBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#6366f1',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  previewTitle: {
-    color: '#f8fafc',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  previewDuration: {
     color: '#94a3b8',
-    fontSize: 11,
-    marginTop: 1,
-  },
-  deleteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    padding: 6,
-  },
-  deleteText: {
-    color: COLORS.danger,
-    fontSize: 12,
     fontWeight: '700',
+    fontSize: 13,
+  },
+  comingSoon: {
+    marginTop: 10,
+    fontSize: 11,
+    color: '#64748b',
+    fontStyle: 'italic',
   },
 });

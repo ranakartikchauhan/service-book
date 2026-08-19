@@ -1,85 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Audio } from 'expo-av';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SHADOWS } from '../theme';
 
+/**
+ * VoiceNotePlayer — stub component (audio playback coming soon)
+ * expo-av removed due to RN 0.86 incompatibility. This placeholder
+ * keeps the UI intact without crashing the app.
+ */
 export default function VoiceNotePlayer({ url, durationSec = 0, title = 'Audio Instructions' }) {
-  const [sound, setSound] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [positionMillis, setPositionMillis] = useState(0);
-  const [durationMillis, setDurationMillis] = useState((durationSec || 0) * 1000);
-
-  useEffect(() => {
-    return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
-  }, [sound]);
-
-  const onPlaybackStatusUpdate = (status) => {
-    if (status.isLoaded) {
-      setPositionMillis(status.positionMillis);
-      setDurationMillis(status.durationMillis || (durationSec * 1000));
-      setIsPlaying(status.isPlaying);
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-        setPositionMillis(0);
-      }
-    } else if (status.error) {
-      console.error('Playback error:', status.error);
-      setIsPlaying(false);
-    }
-  };
-
-  const handlePlayPause = async () => {
-    if (!url) return;
-
-    try {
-      if (sound) {
-        if (isPlaying) {
-          await sound.pauseAsync();
-        } else {
-          if (positionMillis >= durationMillis && durationMillis > 0) {
-            await sound.replayAsync();
-          } else {
-            await sound.playAsync();
-          }
-        }
-      } else {
-        setLoading(true);
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: false,
-          shouldDuckAndroid: true,
-        });
-
-        const { sound: newSound } = await Audio.Sound.createAsync(
-          { uri: url },
-          { shouldPlay: true },
-          onPlaybackStatusUpdate
-        );
-        setSound(newSound);
-        setIsPlaying(true);
-      }
-    } catch (error) {
-      console.error('Audio playback error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatTime = (millis) => {
-    const totalSeconds = Math.floor(millis / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-  };
-
-  const progressPercent = durationMillis > 0 ? (positionMillis / durationMillis) * 100 : 0;
-
   return (
     <View style={[styles.container, SHADOWS.small]}>
       <View style={styles.headerRow}>
@@ -91,42 +20,26 @@ export default function VoiceNotePlayer({ url, durationSec = 0, title = 'Audio I
       </View>
 
       <View style={styles.playerControls}>
-        <TouchableOpacity
-          style={styles.playBtn}
-          onPress={handlePlayPause}
-          activeOpacity={0.8}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Ionicons name={isPlaying ? 'pause' : 'play'} size={20} color="#FFFFFF" />
-          )}
-        </TouchableOpacity>
+        <View style={styles.playBtnDisabled}>
+          <Ionicons name="play" size={20} color="#64748b" />
+        </View>
 
         <View style={styles.progressContainer}>
-          {/* Audio Wave Visualizer Bars */}
+          {/* Static wave bars */}
           <View style={styles.waveBarContainer}>
-            {[18, 28, 14, 32, 22, 36, 16, 26, 34, 18, 30, 20, 36, 14, 28, 22, 34, 16].map((h, i) => {
-              const active = (i / 18) * 100 <= progressPercent;
-              return (
-                <View
-                  key={i}
-                  style={[
-                    styles.waveBar,
-                    { height: h, backgroundColor: active ? COLORS.primaryLight : '#334155' },
-                  ]}
-                />
-              );
-            })}
+            {[18, 28, 14, 32, 22, 36, 16, 26, 34, 18, 30, 20, 36, 14, 28, 22, 34, 16].map((h, i) => (
+              <View key={i} style={[styles.waveBar, { height: h }]} />
+            ))}
           </View>
 
           <View style={styles.timeRow}>
-            <Text style={styles.timeText}>{formatTime(positionMillis)}</Text>
+            <Text style={styles.timeText}>0:00</Text>
             <Text style={styles.timeText}>
-              {durationMillis > 0 ? formatTime(durationMillis) : `${durationSec || 0}s`}
+              {durationSec > 0 ? `${Math.floor(durationSec / 60)}:${String(durationSec % 60).padStart(2, '0')}` : '--:--'}
             </Text>
           </View>
+
+          <Text style={styles.comingSoon}>🔊 Audio playback coming soon</Text>
         </View>
       </View>
     </View>
@@ -173,11 +86,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
   },
-  playBtn: {
+  playBtnDisabled: {
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#334155',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -194,6 +109,7 @@ const styles = StyleSheet.create({
   waveBar: {
     width: 3.5,
     borderRadius: 2,
+    backgroundColor: '#334155',
   },
   timeRow: {
     flexDirection: 'row',
@@ -204,5 +120,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94a3b8',
     fontWeight: '600',
+  },
+  comingSoon: {
+    marginTop: 6,
+    fontSize: 11,
+    color: '#64748b',
+    fontStyle: 'italic',
   },
 });

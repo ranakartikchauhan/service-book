@@ -67,9 +67,14 @@ export default function SettingsScreen({ navigation }) {
           {
             text: nextMode === 'worker' ? 'Go to Find Work' : 'Go to My Jobs',
             onPress: () => {
-              if (navigation.canGoBack()) {
-                navigation.popToTop();
-              }
+              // SettingsScreen can be in a Tab (no stack) or Stack navigator.
+              // Try to pop to top on the parent stack; if unavailable, skip safely.
+              try {
+                const parent = navigation.getParent();
+                if (parent && parent.popToTop) {
+                  parent.popToTop();
+                }
+              } catch (_) {}
               navigation.navigate(nextMode === 'worker' ? 'WorkerTabs' : 'PosterTabs');
             },
           },

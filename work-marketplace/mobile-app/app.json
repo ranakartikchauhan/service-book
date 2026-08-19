@@ -18,6 +18,7 @@
     },
     "android": {
       "package": "com.workmarket.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#0f172a"

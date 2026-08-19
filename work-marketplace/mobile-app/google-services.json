@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "460471969110",
+    "project_id": "work-market-4f596",
+    "storage_bucket": "work-market-4f596.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:460471969110:android:f553ce9ff27c79c1a3e2f7",
+        "android_client_info": {
+          "package_name": "com.workmarket.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCAQgPQsaal0rpYfiKmxMu-SJ-YOH2IWFs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
