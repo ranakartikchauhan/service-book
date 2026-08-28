@@ -1,14 +1,41 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAudioPlayer } from 'expo-audio';
 import { COLORS, SHADOWS } from '../theme';
 
 /**
- * VoiceNotePlayer — stub component (audio playback coming soon)
- * expo-av removed due to RN 0.86 incompatibility. This placeholder
- * keeps the UI intact without crashing the app.
+ * VoiceNotePlayer — Audio player component for listening to voice instructions.
+ * Uses expo-audio useAudioPlayer hook with playback controls and animated waveform.
  */
 export default function VoiceNotePlayer({ url, durationSec = 0, title = 'Audio Instructions' }) {
+  const player = useAudioPlayer(url || '');
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    if (player) {
+      setIsPlaying(player.playing);
+    }
+  }, [player?.playing]);
+
+  const togglePlayback = () => {
+    if (!player) return;
+    if (player.playing) {
+      player.pause();
+      setIsPlaying(false);
+    } else {
+      player.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const formatTime = (sec) => {
+    if (!sec || sec <= 0) return '0:00';
+    const mins = Math.floor(sec / 60);
+    const secs = sec % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
   return (
     <View style={[styles.container, SHADOWS.small]}>
       <View style={styles.headerRow}>
@@ -20,26 +47,33 @@ export default function VoiceNotePlayer({ url, durationSec = 0, title = 'Audio I
       </View>
 
       <View style={styles.playerControls}>
-        <View style={styles.playBtnDisabled}>
-          <Ionicons name="play" size={20} color="#64748b" />
-        </View>
+        <TouchableOpacity
+          style={[styles.playBtn, isPlaying && styles.playBtnActive]}
+          onPress={togglePlayback}
+          activeOpacity={0.8}
+        >
+          <Ionicons name={isPlaying ? 'pause' : 'play'} size={22} color="#FFFFFF" />
+        </TouchableOpacity>
 
         <View style={styles.progressContainer}>
-          {/* Static wave bars */}
+          {/* Waveform bars */}
           <View style={styles.waveBarContainer}>
             {[18, 28, 14, 32, 22, 36, 16, 26, 34, 18, 30, 20, 36, 14, 28, 22, 34, 16].map((h, i) => (
-              <View key={i} style={[styles.waveBar, { height: h }]} />
+              <View
+                key={i}
+                style={[
+                  styles.waveBar,
+                  { height: h },
+                  isPlaying && (i % 2 === 0 ? styles.waveActive1 : styles.waveActive2),
+                ]}
+              />
             ))}
           </View>
 
           <View style={styles.timeRow}>
-            <Text style={styles.timeText}>0:00</Text>
-            <Text style={styles.timeText}>
-              {durationSec > 0 ? `${Math.floor(durationSec / 60)}:${String(durationSec % 60).padStart(2, '0')}` : '--:--'}
-            </Text>
+            <Text style={styles.timeText}>{isPlaying ? 'Playing...' : '0:00'}</Text>
+            <Text style={styles.timeText}>{formatTime(durationSec)}</Text>
           </View>
-
-          <Text style={styles.comingSoon}>🔊 Audio playback coming soon</Text>
         </View>
       </View>
     </View>
@@ -86,15 +120,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
   },
-  playBtnDisabled: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: '#1e293b',
-    borderWidth: 1,
-    borderColor: '#334155',
+  playBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  playBtnActive: {
+    backgroundColor: '#ef4444',
   },
   progressContainer: {
     flex: 1,
@@ -111,6 +146,12 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: '#334155',
   },
+  waveActive1: {
+    backgroundColor: COLORS.primaryLight,
+  },
+  waveActive2: {
+    backgroundColor: '#818cf8',
+  },
   timeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -120,11 +161,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94a3b8',
     fontWeight: '600',
-  },
-  comingSoon: {
-    marginTop: 6,
-    fontSize: 11,
-    color: '#64748b',
-    fontStyle: 'italic',
   },
 });
