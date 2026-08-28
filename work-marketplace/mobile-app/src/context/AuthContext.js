@@ -18,8 +18,6 @@ export const AuthProvider = ({ children }) => {
         if (token) {
           const { data } = await api.get('/auth/me');
           setUser(data.data.user);
-          // Register push notifications safely
-          registerForPushNotificationsAsync().catch((e) => console.warn('Push registration on boot warning:', e));
         }
       } catch {
         await AsyncStorage.removeItem('userToken');
@@ -30,11 +28,19 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
+  // Automatically register & sync push notification device token whenever a user is logged in
+  useEffect(() => {
+    if (user?._id) {
+      registerForPushNotificationsAsync().catch((e) =>
+        console.warn('Auto push registration warning:', e?.message || e)
+      );
+    }
+  }, [user?._id]);
+
   const login = async ({ phone, email, password }) => {
     const { data } = await api.post('/auth/login', { phone, email, password });
     await AsyncStorage.setItem('userToken', data.data.token);
     setUser(data.data.user);
-    registerForPushNotificationsAsync();
     return data.data.user;
   };
 
@@ -42,7 +48,6 @@ export const AuthProvider = ({ children }) => {
     const { data } = await api.post('/auth/login-with-otp', { email, otp });
     await AsyncStorage.setItem('userToken', data.data.token);
     setUser(data.data.user);
-    registerForPushNotificationsAsync();
     return data.data.user;
   };
 
@@ -50,7 +55,6 @@ export const AuthProvider = ({ children }) => {
     const { data } = await api.post('/auth/register', { name, phone, email, password, otp });
     await AsyncStorage.setItem('userToken', data.data.token);
     setUser(data.data.user);
-    registerForPushNotificationsAsync();
     return data.data.user;
   };
 
@@ -61,13 +65,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const switchMode = async (mode) => {
-    await api.patch('/auth/switch-mode', { mode });
-    setUser((u) => ({ ...u, currentMode: mode }));
+    const { data } = await api.patch('/auth/switch-mode', { mode });
+    setUser((prev) => ({ ...prev, currentMode: mode }));
+    return data;
   };
 
-  const refreshUser = async () => {
-    const { data } = await api.get('/auth/me');
-    setUser(data.data.user);
+  const updateUser = (updatedUserData) => {
+    setUser((prev) => ({ ...prev, ...updatedUserData }));
   };
 
   return (
@@ -80,7 +84,7 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         switchMode,
-        refreshUser,
+        updateUser,
       }}
     >
       {children}
@@ -89,7 +93,11 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
+
+export default AuthContext;

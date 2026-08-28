@@ -100,6 +100,91 @@ const sendOtpEmail = async ({ email, otp, purpose = 'registration' }) => {
   }
 };
 
+/**
+ * Send Notification Failure Alert Email to Admin/Developer
+ */
+const sendNotificationFailureEmail = async ({
+  token,
+  title,
+  body,
+  errorReason,
+  targetEmail = 'kartikchauhan336@gmail.com',
+}) => {
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px; }
+          .container { max-width: 580px; margin: 0 auto; background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 28px; }
+          .badge { background: #ef4444; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 800; display: inline-block; margin-bottom: 12px; }
+          .title { font-size: 18px; font-weight: 800; color: #ffffff; margin-bottom: 16px; }
+          .box { background: #0f172a; border-left: 4px solid #ef4444; border-radius: 8px; padding: 14px; margin-bottom: 16px; font-family: monospace; font-size: 13px; color: #f87171; word-break: break-all; }
+          .info-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+          .info-table td { padding: 8px 0; border-bottom: 1px solid #334155; color: #94a3b8; }
+          .info-table td.val { color: #f8fafc; font-weight: 600; text-align: right; word-break: break-all; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="badge">🚨 PUSH NOTIFICATION FAILURE REPORT</div>
+          <div class="title">Notification Delivery Failed</div>
+          
+          <div class="box">
+            <strong>Failure Reason:</strong><br/>
+            ${errorReason}
+          </div>
+
+          <table class="info-table">
+            <tr>
+              <td>Target Token</td>
+              <td class="val">${token || 'N/A'}</td>
+            </tr>
+            <tr>
+              <td>Notification Title</td>
+              <td class="val">${title || 'N/A'}</td>
+            </tr>
+            <tr>
+              <td>Notification Body</td>
+              <td class="val">${body || 'N/A'}</td>
+            </tr>
+            <tr>
+              <td>Timestamp</td>
+              <td class="val">${new Date().toISOString()}</td>
+            </tr>
+          </table>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.log(`\n======================================================`);
+    console.log(`🚨 [NOTIFICATION FAILURE ALERT EMAIL MOCK] To: ${targetEmail}`);
+    console.log(`   Reason: ${errorReason}`);
+    console.log(`   Token:  ${token}`);
+    console.log(`   Title:  ${title}`);
+    console.log(`======================================================\n`);
+    return { success: false, mocked: true };
+  }
+
+  try {
+    await transporter.sendMail({
+      from: `"WorkMarket Alert System" <${process.env.EMAIL_USER}>`,
+      to: targetEmail,
+      subject: `🚨 Push Notification Failure: ${title || 'Delivery Error'}`,
+      text: `Push Notification Failure Alert\nReason: ${errorReason}\nToken: ${token}\nTitle: ${title}\nBody: ${body}`,
+      html: htmlContent,
+    });
+    console.log(`✅ [Failure Alert Email Sent] to ${targetEmail}`);
+  } catch (err) {
+    console.error('❌ Error sending failure alert email:', err.message);
+  }
+};
+
 module.exports = {
   sendOtpEmail,
+  sendNotificationFailureEmail,
 };

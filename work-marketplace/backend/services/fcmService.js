@@ -6,19 +6,32 @@ const initFirebase = () => {
   try {
     admin = require('firebase-admin');
     
-    // Support path or inline JSON string in env
+    // Support path or inline JSON string in env or default config file
     let serviceAccount;
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+      serviceAccount = typeof process.env.FIREBASE_SERVICE_ACCOUNT_JSON === 'string'
+        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
+        : process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
     } else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
-      serviceAccount = require(process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
+      const path = require('path');
+      const resolvedPath = path.isAbsolute(process.env.FIREBASE_SERVICE_ACCOUNT_PATH)
+        ? process.env.FIREBASE_SERVICE_ACCOUNT_PATH
+        : path.join(__dirname, '..', process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
+      serviceAccount = require(resolvedPath);
+    } else {
+      const path = require('path');
+      const fs = require('fs');
+      const defaultPath = path.join(__dirname, '../config/firebase-service-account.json');
+      if (fs.existsSync(defaultPath)) {
+        serviceAccount = require(defaultPath);
+      }
     }
 
     if (serviceAccount && !admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
-      console.log('✅ Firebase Admin SDK initialized');
+      console.log('✅ Firebase Admin SDK initialized successfully');
     }
     return admin;
   } catch (error) {
@@ -29,6 +42,7 @@ const initFirebase = () => {
 
 /**
  * Send a push notification (Supports Expo Push API and Firebase Cloud Messaging)
+ * Email alert automatically sent to kartikchauhan336@gmail.com if delivery fails.
  */
 const sendPushNotification = async (firstArg, secondArg) => {
   let token, title, body, data;
@@ -43,7 +57,18 @@ const sendPushNotification = async (firstArg, secondArg) => {
     body = firstArg.body;
     data = firstArg.data || {};
   }
-  if (!token) return;
+
+  const { sendNotificationFailureEmail } = require('./emailService');
+
+  if (!token) {
+    sendNotificationFailureEmail({
+      token: 'NULL / UNDEFINED',
+      title: title || 'N/A',
+      body: body || 'N/A',
+      errorReason: 'Push Notification aborted: No recipient device token provided.',
+    }).catch(() => {});
+    return;
+  }
 
   // 1. Check if token is an Expo Push Token
   if (token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken[')) {
@@ -67,9 +92,27 @@ const sendPushNotification = async (firstArg, secondArg) => {
       });
       const result = await response.json();
       console.log('📱 [Expo Push Sent]:', result);
+
+      if (result?.data?.status === 'error') {
+        const errDetail = result.data.message || JSON.stringify(result.data);
+        console.error('❌ Expo Push Server Error:', errDetail);
+        sendNotificationFailureEmail({
+          token,
+          title,
+          body,
+          errorReason: `Expo Push Server Rejected: ${errDetail}`,
+        }).catch(() => {});
+      }
+
       return result;
     } catch (err) {
       console.error('Expo Push error:', err.message);
+      sendNotificationFailureEmail({
+        token,
+        title,
+        body,
+        errorReason: `Expo Push Network Error: ${err.message}`,
+      }).catch(() => {});
       return;
     }
   }
@@ -97,10 +140,24 @@ const sendPushNotification = async (firstArg, secondArg) => {
       return;
     } catch (error) {
       console.error('FCM send error:', error.message);
+      sendNotificationFailureEmail({
+        token,
+        title,
+        body,
+        errorReason: `Firebase FCM Error (${error.code || 'N/A'}): ${error.message}`,
+      }).catch(() => {});
+
       if (error.code === 'messaging/registration-token-not-registered') {
         return { invalidToken: true };
       }
     }
+  } else {
+    sendNotificationFailureEmail({
+      token,
+      title,
+      body,
+      errorReason: `Firebase Admin SDK not initialized on backend server. Add FIREBASE_SERVICE_ACCOUNT_JSON to Vercel/Render env vars.`,
+    }).catch(() => {});
   }
 
   // 3. Fallback / Dev Log

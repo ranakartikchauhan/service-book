@@ -9,6 +9,8 @@ try {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
     }),
@@ -41,7 +43,7 @@ export async function registerForPushNotificationsAsync() {
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#6366F1',
-          sound: 'default',
+          // Omit sound key so Android uses system default notification sound without resource errors
         });
       } catch (chanErr) {
         console.warn('Notification channel setup warning:', chanErr?.message || chanErr);
@@ -70,30 +72,36 @@ export async function registerForPushNotificationsAsync() {
 
     let tokenError = null;
 
-    // 1. Try Expo Push Token with EAS Project ID
-    try {
-      const projectId =
-        Constants?.expoConfig?.extra?.eas?.projectId ||
-        Constants?.easConfig?.projectId ||
-        '43008fda-616a-4bad-a04e-8d586b53cc4f';
-
-      const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-      token = tokenData?.data;
-    } catch (e1) {
-      tokenError = e1?.message || String(e1);
-      // 2. Try default Expo Push Token
+    // 1. On Android, try Native Device FCM Push Token first for direct Firebase messaging
+    if (Platform.OS === 'android') {
       try {
-        const tokenData = await Notifications.getExpoPushTokenAsync();
+        const deviceTokenData = await Notifications.getDevicePushTokenAsync();
+        if (deviceTokenData?.data) {
+          token = deviceTokenData.data;
+          console.log('📲 [Native FCM Token Acquired]:', token);
+        }
+      } catch (fcmErr) {
+        console.warn('Native device FCM token notice:', fcmErr?.message || fcmErr);
+      }
+    }
+
+    // 2. Fall back to Expo Push Token if native FCM token was unavailable
+    if (!token) {
+      try {
+        const projectId =
+          Constants?.expoConfig?.extra?.eas?.projectId ||
+          Constants?.easConfig?.projectId ||
+          '13e7ebd2-672b-43dc-bb6a-654a22aedc6d';
+
+        const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
         token = tokenData?.data;
-      } catch (e2) {
-        tokenError = e2?.message || String(e2);
-        // 3. Try Native Device FCM Push Token
+      } catch (e1) {
+        tokenError = e1?.message || String(e1);
         try {
-          const deviceTokenData = await Notifications.getDevicePushTokenAsync();
-          token = deviceTokenData?.data;
-        } catch (e3) {
-          tokenError = e3?.message || String(e3);
-          console.warn('Native device push token notice:', e3?.message || e3);
+          const tokenData = await Notifications.getExpoPushTokenAsync();
+          token = tokenData?.data;
+        } catch (e2) {
+          tokenError = e2?.message || String(e2);
         }
       }
     }
