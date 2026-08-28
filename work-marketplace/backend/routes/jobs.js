@@ -14,6 +14,7 @@ const {
   notifyApplicationRejected,
   notifyNewApplicant,
 } = require('../services/fcmService');
+const { dispatchNotification } = require('../services/notificationService');
 const {
   checkWorkerApplicationLimit,
   checkPosterJobPostLimit,
@@ -310,11 +311,10 @@ router.patch('/:id/start', async (req, res, next) => {
     await job.save();
 
     // Notify poster that worker has started
-    const poster = await User.findById(job.posterId);
-    if (poster?.fcmToken) {
-      const { sendPushNotification } = require('../services/fcmService');
-      sendPushNotification({
-        token: poster.fcmToken,
+    if (job.posterId) {
+      dispatchNotification({
+        userId: job.posterId,
+        category: 'jobReminders',
         title: '🚀 Service Started!',
         body: `${req.user.name} has started work on "${job.title}".`,
         data: { type: 'job_started', jobId: job._id.toString() },
@@ -402,10 +402,13 @@ router.patch('/:id/complete', async (req, res, next) => {
     const isPoster = job.posterId?.toString() === req.user._id?.toString();
     const otherUserId = isPoster ? job.assignedWorkerId : job.posterId;
     if (otherUserId) {
-      const otherUser = await User.findById(otherUserId);
-      if (otherUser?.fcmToken) {
-        notifyJobCompleted(otherUser.fcmToken, job.title);
-      }
+      dispatchNotification({
+        userId: otherUserId,
+        category: 'jobReminders',
+        title: '✅ Job Completed',
+        body: `"${job.title}" has been marked complete. Escrow payout is being processed.`,
+        data: { type: 'job_completed', jobId: job._id.toString() },
+      });
     }
 
     res.json({ success: true, message: 'Job marked as completed successfully!' });
@@ -456,8 +459,15 @@ router.post('/:id/apply', checkWorkerApplicationLimit, async (req, res, next) =>
     }
 
     // Notify the poster
-    const poster = await User.findById(job.posterId);
-    if (poster?.fcmToken) notifyNewApplicant(poster.fcmToken, job.title);
+    if (job.posterId) {
+      dispatchNotification({
+        userId: job.posterId,
+        category: 'applicationUpdates',
+        title: '👤 New Applicant',
+        body: `A verified worker applied to your job "${job.title}". Review proposal.`,
+        data: { type: 'new_applicant', jobId: job._id.toString() },
+      });
+    }
 
     res.status(201).json({ success: true, data: { application } });
   } catch (error) {
@@ -526,8 +536,13 @@ const handleHireWorker = async (req, res, next) => {
     await job.save();
 
     // Notify accepted worker
-    const worker = await User.findById(application.workerId);
-    if (worker?.fcmToken) notifyApplicationAccepted(worker.fcmToken, job.title);
+    dispatchNotification({
+      userId: application.workerId,
+      category: 'applicationUpdates',
+      title: '🎉 Application Accepted!',
+      body: `You've been hired for "${job.title}". Check your active jobs.`,
+      data: { type: 'application_accepted', jobId: job._id.toString() },
+    });
 
     // Notify rejected workers
     const rejectedApps = await Application.find({
@@ -535,9 +550,14 @@ const handleHireWorker = async (req, res, next) => {
       status: APPLICATION_STATUS.REJECTED,
       workerId: { $ne: application.workerId },
     });
-    rejectedApps.forEach(async (app) => {
-      const rejectedWorker = await User.findById(app.workerId);
-      if (rejectedWorker?.fcmToken) notifyApplicationRejected(rejectedWorker.fcmToken, job.title);
+    rejectedApps.forEach((app) => {
+      dispatchNotification({
+        userId: app.workerId,
+        category: 'applicationUpdates',
+        title: 'Application Update',
+        body: `Your application for "${job.title}" wasn't selected this time.`,
+        data: { type: 'application_rejected', jobId: job._id.toString() },
+      });
     });
 
     res.json({

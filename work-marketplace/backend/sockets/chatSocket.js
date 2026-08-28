@@ -77,10 +77,17 @@ const initChatSocket = (io) => {
           const sockets = await io.in(`job:${jobId}`).fetchSockets();
           const recipientOnline = sockets.some((s) => s.userId === recipientId.toString());
 
-          // Only push notify if recipient isn't actively in the chat socket room
-          if (!recipientOnline && recipient?.fcmToken) {
+          // Only notify if recipient isn't actively in the chat socket room
+          if (!recipientOnline) {
             const sender = await User.findById(socket.userId);
-            notifyNewMessage(recipient.fcmToken, sender?.name || 'Someone');
+            const { dispatchNotification } = require('../services/notificationService');
+            dispatchNotification({
+              userId: recipientId,
+              category: 'messages',
+              title: `💬 New message from ${sender?.name || 'Someone'}`,
+              body: text?.trim()?.slice(0, 100) || 'Tap to open chat conversation.',
+              data: { type: 'new_message', jobId: jobId.toString() },
+            });
           }
         }
       } catch (error) {
